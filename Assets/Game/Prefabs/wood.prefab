@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 675910148809692077}
   - component: {fileID: 8735800892972974616}
   - component: {fileID: 4456014603746730688}
+  - component: {fileID: 920102}
   m_Layer: 20
   m_Name: wood
   m_TagString: Untagged
@@ -230,3 +231,17 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 1
+--- !u!114 &920102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2388296961316836435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75e0b8838ff84cb6ba8cc212fd5c9a32, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  resourceType: 0
+  amount: 1

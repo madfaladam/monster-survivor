@@ -1,0 +1,6 @@
+{
+    "name": "MonsterSurvivor.Resources.Tests",
+    "references": ["MonsterSurvivor.Resources"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

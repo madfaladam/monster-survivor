@@ -16,6 +16,8 @@ GameObject:
   - component: {fileID: 910001}
   - component: {fileID: 910002}
   - component: {fileID: 910003}
+  - component: {fileID: 920100}
+  - component: {fileID: 920101}
   m_Layer: 20
   m_Name: Player
   m_TagString: Player
@@ -312,5 +314,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ace72a4f78c443dda0a493010e8f7139, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+--- !u!114 &920100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 556035933942092222}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 246cbd9f8f014b7d9a721829ba7a9bcf, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  initialWood: 10
+  initialStone: 10
+--- !u!114 &920101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 556035933942092222}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80188472c9f54c97ab80cd1306274a4d, type: 3}
   m_Name:
   m_EditorClassIdentifier:

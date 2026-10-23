@@ -1,0 +1,38 @@
+using UnityEngine;
+
+namespace MonsterSurvivor.Resources
+{
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(Collider2D))]
+    public sealed class ResourcePickup : MonoBehaviour
+    {
+        [SerializeField] private ResourceType resourceType;
+        [SerializeField, Min(1)] private int amount = 1;
+
+        private bool collected;
+
+        public bool TryCollect(IResourceWallet wallet)
+        {
+            if (collected || !isActiveAndEnabled || wallet == null || amount <= 0)
+                return false;
+
+            if (wallet.GetAmount(resourceType) > int.MaxValue - amount)
+                return false;
+
+            // Consume before notifying wallet observers so callbacks cannot collect twice.
+            collected = true;
+            gameObject.SetActive(false);
+            wallet.Add(resourceType, amount);
+            return true;
+        }
+
+        public void Restore()
+        {
+            if (!collected)
+                return;
+
+            collected = false;
+            gameObject.SetActive(true);
+        }
+    }
+}
