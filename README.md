@@ -2,9 +2,9 @@
 
 ## Game Overview
 A work-in-progress 2D base builder with wave defense for the Bumi Studio technical test.
-The current milestone implements player movement, resource collection, proximity
-construction, and wood/stone production. Waves and win/lose conditions are not
-implemented yet.
+The current milestone implements the economy plus one manually started combat
+encounter: build a turret, then defend the generator from a waypoint-following enemy.
+Clearing this encounter is not yet the full three-wave game required by the brief.
 
 ## How to Run
 - Engine & version used: Unity 6000.0.75f1, C#.
@@ -22,6 +22,12 @@ implemented yet.
   space becomes available; it does not accumulate a production backlog.
 - Building costs/duration are editable in `Assets/Game/Data/Buildings`; output type,
   interval, and capacity are in `Assets/Game/Data/Production`.
+- Approach the turret site to build it for 6 wood + 4 stone (3 seconds).
+- Press Space when ready. Construction is disabled during combat; an unfinished
+  build is cancelled and refunded. The turret attacks automatically once built.
+- The enemy has 40 HP and attacks the 100-HP generator. Defeat the enemy to clear
+  the encounter; generator HP reaching zero ends it in defeat.
+- Press R to reload the scene and reset inventory, buildings, HP, and the encounter.
 - Build location: not available yet.
 
 ## Technical Decisions
@@ -50,24 +56,42 @@ implemented yet.
 - Building status UI and sprite opacity are embedded in the building prefabs. The
   authored scene hierarchy and building positions are preserved. UI refreshes from
   events, with progress updated only during active construction.
+- HealthState and AttackCooldown are Unity-independent combat rules. Enemy and
+  turret attack stats use ScriptableObjects under `Assets/Game/Data/Combat`; maximum
+  HP is configured on each prefab Health component.
+- Enemy movement follows explicit scene waypoints, then attacks the closest point
+  on the generator collider. Attack range accounts for the enemy footprint. Player
+  collisions are ignored for this encounter so the worker cannot body-block enemies.
+- Turrets query an injected enemy-target provider, not scene searches or allocating
+  physics queries. A small registered roster is sufficient for this prototype.
+- Shots apply damage immediately (hitscan, without line-of-sight blocking). Each
+  turret reuses one beam renderer and sprite; no projectile object is allocated per
+  attack. The turret body is static so the player cannot push it.
+- CombatEncounter coordinates the single encounter, actor activation, and terminal
+  outcomes. Generator defeat takes priority over a clear notification. The gameplay
+  scene is included in Build Settings so R can reload it in a PC build.
 - No extra framework or dependency was introduced.
 - Visual assets: Cainos, Pixel Art Top Down - Basic (Unity Asset Store).
 
 ## What I Would Do With More Time
-Next milestones: turret combat, enemies, wave-based world pickup refill, then three
-complete build/defend cycles with victory and defeat. Timebox build phases and tune
-resource costs so production creates a meaningful trade-off with immediate defense.
+Next milestones: three build/defend cycles, escalating enemy spawning, world pickup
+refill at each build phase, and a run result screen. Then balance construction and
+production costs, add barricades, and validate authored routes in the Windows build.
 
 ## Known Issues
-- This is the construction/economy milestone, not the complete playable submission.
-- Production runs during normal play. Phase restrictions and end-of-run stopping
-  will be connected when the wave/game flow system is added.
+- This is a single-enemy combat milestone, not the complete playable submission.
+- Production continues during play, including after the encounter ends. The full
+  run lifecycle and stopping economy systems will be connected with wave/game flow.
+- Enemies currently attack only the generator. Turret destruction and barricade
+  interaction are not implemented.
+- Enemy paths are authored waypoints; dynamic obstacle avoidance is not implemented.
+  Routes and visual combat feedback still need Play Mode verification.
 - Camera bounds and player world bounds are not implemented.
 - Wave-based pickup refill is not connected yet; waves are a later milestone.
 - Unity Editor and Windows build execution have not been verified in the development
   environment used for this change. Check movement, collisions, animation direction,
   camera tracking, pickup collection, and focus changes in the specified Unity version.
-- Wallet, construction, and production tests are provided in `Assets/Game/Tests/EditMode`
+- Wallet, construction, production, health, and cooldown tests are provided in `Assets/Game/Tests/EditMode`
   for the Unity Test Runner (EditMode); they have not been executed here. They cover
   mixed-cost atomicity, cancellation/refunds, completion, production timing/capacity,
   no backlog when full, partial collection, invalid input, and overflow.
@@ -80,3 +104,10 @@ resource costs so production creates a meaningful trade-off with immediate defen
   and verify stock caps at 6. Collect it, then verify the next output takes 3 seconds.
 - Edge checks: try building with insufficient resources, disable the player or site
   during construction, and overlap two build zones to verify only one reservation.
+- Manual combat check: build the turret, press Space, and verify an enemy travels
+  along the two waypoint markers, loses HP from shots, and clears the encounter
+  exactly once. Restart and press Space without a turret to verify generator defeat.
+- Check that unfinished construction is refunded on Space, no construction starts
+  during combat, the player cannot push the turret or body-block the enemy, and R
+  fully resets the scene. The new EditMode cases include lethal/reentrant damage,
+  one-time death notification, attack timing, and no burst after a large frame stall.

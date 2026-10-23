@@ -1,0 +1,5 @@
+{
+    "name": "MonsterSurvivor.Combat",
+    "rootNamespace": "MonsterSurvivor.Combat",
+    "noEngineReferences": true
+}

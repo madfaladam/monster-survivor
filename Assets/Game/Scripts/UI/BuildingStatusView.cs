@@ -16,6 +16,7 @@ namespace MonsterSurvivor.UI
 
         private Color[] originalColors;
         private string costLabel;
+        private string builtLabel;
         private bool initialized;
         private bool builtVisual;
         private bool visualsInitialized;
@@ -29,6 +30,7 @@ namespace MonsterSurvivor.UI
 
             BuildingDefinition definition = site.Definition;
             costLabel = $"{definition.DisplayName}\n{definition.WoodCost} Wood + {definition.StoneCost} Stone";
+            builtLabel = $"{definition.DisplayName}\nReady";
             statusLabel.font = UnityEngine.Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             initialized = true;
             Subscribe();
@@ -46,7 +48,8 @@ namespace MonsterSurvivor.UI
         private void Subscribe()
         {
             site.Changed += Refresh;
-            production.Changed += Refresh;
+            if (production != null)
+                production.Changed += Refresh;
         }
 
         private void OnDisable()
@@ -54,7 +57,8 @@ namespace MonsterSurvivor.UI
             if (!initialized)
                 return;
             site.Changed -= Refresh;
-            production.Changed -= Refresh;
+            if (production != null)
+                production.Changed -= Refresh;
         }
 
         private void Refresh()
@@ -77,6 +81,8 @@ namespace MonsterSurvivor.UI
             statusLabel.color = site.NeedsResources ? new Color(1f, 0.65f, 0.55f) : Color.white;
             if (!built)
                 statusLabel.text = site.IsBuilding ? "Building..." : costLabel;
+            else if (production == null)
+                statusLabel.text = builtLabel;
             else if (lastCount != production.Count)
             {
                 lastCount = production.Count;
