@@ -16022,11 +16022,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 519420028}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 13d0e62721e731a47916713e45e4ef50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Script: {fileID: 11500000, guid: cb2dd51ead984842b679c0e51f66cf20, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
   target: {fileID: 1622224631}
-  lerpSpeed: 2.5
+  offset: {x: 0, y: 0.7}
+  smoothTime: 0.15
 --- !u!20 &519420031
 Camera:
   m_ObjectHideFlags: 0
