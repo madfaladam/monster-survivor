@@ -1,0 +1,6 @@
+{
+    "name": "MonsterSurvivor.Construction",
+    "rootNamespace": "MonsterSurvivor.Construction",
+    "references": ["MonsterSurvivor.Resources"],
+    "noEngineReferences": true
+}
