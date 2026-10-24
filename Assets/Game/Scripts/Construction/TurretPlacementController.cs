@@ -1,6 +1,7 @@
 using System.Collections;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Player;
+using MonsterSurvivor.Resources;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,20 +17,16 @@ namespace MonsterSurvivor.Construction
         [SerializeField] private PlayerInventory inventory;
         [SerializeField] private Camera worldCamera;
         [SerializeField] private GameObject buildPanel;
-        [SerializeField] private Button turretButton;
-        [SerializeField] private Text turretPriceLabel;
-        [SerializeField] private Text turretButtonLabel;
+        [SerializeField] private BuildingButtonUI[] buildingButtons;
         [SerializeField] private Text notificationLabel;
         [SerializeField, Min(0.1f)] private float notificationDuration = 2f;
-        [SerializeField] private GameObject turretPrefab;
 
         [Header("Placement")]
         [SerializeField] private Collider2D placementArea;
         [SerializeField] private LayerMask blockedLayers;
         [SerializeField, Min(0.1f)] private float placementRadius = 0.5f;
 
-        private ConstructionSite prefabSite;
-        private BuildingDefinition definition;
+        private BuildingButtonUI selectedOption;
         private GameObject preview;
         private SpriteRenderer[] previewRenderers;
         private bool placing;
@@ -37,22 +34,31 @@ namespace MonsterSurvivor.Construction
 
         private void Awake()
         {
-            if (encounter == null || inventory == null || worldCamera == null || turretPrefab == null)
+            if (encounter == null || inventory == null || worldCamera == null)
             {
-                Debug.LogError("Assign encounter, inventory, camera, and turret prefab.", this);
+                Debug.LogError("Assign encounter, inventory, and camera.", this);
                 enabled = false;
                 return;
             }
 
-            prefabSite = turretPrefab.GetComponentInChildren<ConstructionSite>();
-            if (prefabSite == null || turretPrefab.GetComponentInChildren<TurretController>() == null)
+            if (buildingButtons == null || buildingButtons.Length == 0)
             {
-                Debug.LogError("Turret prefab needs ConstructionSite and TurretController components.", this);
+                Debug.LogError("Assign at least one BuildingButtonUI in Building Buttons.", this);
                 enabled = false;
                 return;
             }
 
-            definition = prefabSite.Definition;
+            foreach (BuildingButtonUI option in buildingButtons)
+            {
+                if (option == null)
+                    continue;
+
+                if (!option.RefreshDefinition())
+                    Debug.LogError($"Building button '{option.name}' needs a prefab with ConstructionSite and BuildingDefinition.", option);
+
+                if (option.Prefab != null && option.Prefab.GetComponentInChildren<ConstructionSite>() == null)
+                    Debug.LogError($"Building prefab '{option.Prefab.name}' needs a ConstructionSite.", option);
+            }
         }
 
         private void OnEnable()
@@ -61,8 +67,17 @@ namespace MonsterSurvivor.Construction
                 encounter.Changed += RefreshUI;
             if (inventory != null && inventory.Wallet != null)
                 inventory.Wallet.Changed += RefreshUI;
-            if (turretButton != null)
-                turretButton.onClick.AddListener(SelectTurret);
+
+            if (buildingButtons != null)
+            {
+                foreach (BuildingButtonUI option in buildingButtons)
+                {
+                    if (option == null)
+                        continue;
+                    option.Clicked += SelectBuilding;
+                    option.RefreshDefinition();
+                }
+            }
 
             RefreshUI();
         }
@@ -72,7 +87,7 @@ namespace MonsterSurvivor.Construction
             if (!placing)
                 return;
 
-            if (encounter.State != EncounterState.Ready || !CanAfford())
+            if (encounter == null || encounter.State != EncounterState.Ready || !CanAfford(selectedOption))
             {
                 CancelPlacement();
                 RefreshUI();
@@ -95,30 +110,29 @@ namespace MonsterSurvivor.Construction
             bool valid = IsValidPlacement(position);
             SetPreviewColor(valid);
 
-            if (Mouse.current.leftButton.wasPressedThisFrame &&
-                !IsPointerOverUI() && valid)
-            {
-                PlaceTurret(position);
-            }
+            if (Mouse.current.leftButton.wasPressedThisFrame && !IsPointerOverUI() && valid)
+                PlaceBuilding(position);
         }
 
-        private void SelectTurret()
+        private void SelectBuilding(BuildingButtonUI option)
         {
-            if (encounter == null || encounter.State != EncounterState.Ready)
+            if (option == null || option.Prefab == null || option.Definition == null ||
+                encounter == null || encounter.State != EncounterState.Ready)
                 return;
 
-            if (!CanAfford())
+            CancelPlacement();
+            selectedOption = option;
+
+            if (!CanAfford(selectedOption))
             {
-                ShowNotification(
-                    $"Resource is not enough. need {definition.WoodCost} Wood + {definition.StoneCost} Stone.");
+                ShowNotification($"Not enough resources. Need {FormatPrice(option.Definition)}.");
+                selectedOption = null;
+                RefreshUI();
                 return;
             }
 
-            CancelPlacement();
-            preview = Instantiate(turretPrefab);
-            preview.name = $"{turretPrefab.name} (Placement Preview)";
-            preview.SetActive(false);
-
+            preview = Instantiate(option.Prefab);
+            preview.name = $"{option.Prefab.name} (Placement Preview)";
             foreach (MonoBehaviour behaviour in preview.GetComponentsInChildren<MonoBehaviour>(true))
                 behaviour.enabled = false;
             foreach (Collider2D collider in preview.GetComponentsInChildren<Collider2D>(true))
@@ -132,23 +146,30 @@ namespace MonsterSurvivor.Construction
             RefreshUI();
         }
 
-        private void PlaceTurret(Vector2 position)
+        private void PlaceBuilding(Vector2 position)
         {
-            GameObject building = Instantiate(turretPrefab, position, Quaternion.identity);
-            ConstructionSite site = building.GetComponentInChildren<ConstructionSite>();
-            TurretController turret = building.GetComponentInChildren<TurretController>();
+            if (selectedOption == null)
+                return;
 
-            if (site == null || turret == null || !site.BeginAutoConstruction(inventory.Wallet))
+            GameObject building = Instantiate(selectedOption.Prefab, position, Quaternion.identity);
+            ConstructionSite site = building.GetComponentInChildren<ConstructionSite>();
+
+            if (site == null || !site.BeginAutoConstruction(inventory.Wallet))
             {
                 Destroy(building);
-                ShowNotification("Failed to build turret. Check resources and prefab.");
+                ShowNotification($"Failed to build {selectedOption.Definition.DisplayName}. Check resources and prefab.");
                 CancelPlacement();
+                selectedOption = null;
                 RefreshUI();
                 return;
             }
 
-            encounter.RegisterTurret(turret);
+            TurretController turret = building.GetComponentInChildren<TurretController>();
+            if (turret != null)
+                encounter.RegisterTurret(turret);
+
             CancelPlacement();
+            selectedOption = null;
             RefreshUI();
         }
 
@@ -173,8 +194,7 @@ namespace MonsterSurvivor.Construction
 
         private Vector2 ScreenToWorld(Vector2 screenPosition)
         {
-            Vector3 screen = new Vector3(screenPosition.x, screenPosition.y,
-                -worldCamera.transform.position.z);
+            Vector3 screen = new Vector3(screenPosition.x, screenPosition.y, -worldCamera.transform.position.z);
             Vector3 world = worldCamera.ScreenToWorldPoint(screen);
             return new Vector2(world.x, world.y);
         }
@@ -182,14 +202,17 @@ namespace MonsterSurvivor.Construction
         private static bool IsPointerOverUI() =>
             EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-        private bool CanAfford()
+        private bool CanAfford(BuildingButtonUI option)
         {
-            if (definition == null || inventory == null || inventory.Wallet == null)
+            if (option == null || option.Definition == null || inventory == null || inventory.Wallet == null)
                 return false;
 
-            return inventory.Wallet.GetAmount(MonsterSurvivor.Resources.ResourceType.Wood) >= definition.WoodCost &&
-                   inventory.Wallet.GetAmount(MonsterSurvivor.Resources.ResourceType.Stone) >= definition.StoneCost;
+            return inventory.Wallet.GetAmount(ResourceType.Wood) >= option.Definition.WoodCost &&
+                   inventory.Wallet.GetAmount(ResourceType.Stone) >= option.Definition.StoneCost;
         }
+
+        private static string FormatPrice(BuildingDefinition definition) =>
+            $"{definition.WoodCost} Wood + {definition.StoneCost} Stone";
 
         private void RefreshUI()
         {
@@ -197,18 +220,15 @@ namespace MonsterSurvivor.Construction
             if (buildPanel != null && buildPanel.activeSelf != ready)
                 buildPanel.SetActive(ready);
 
-            if (turretButtonLabel != null && definition != null)
-                turretButtonLabel.text = $"{definition.DisplayName}";
-
-            if (turretPriceLabel != null && definition != null)
-                turretPriceLabel.text = $"{definition.WoodCost} Wood\n{definition.StoneCost} Stone";
-
-            if (!ready || (placing && !CanAfford()))
+            if (!ready)
                 CancelPlacement();
 
-            // Keep the button clickable when resources are insufficient so it can show a message.
-            if (turretButton != null)
-                turretButton.interactable = ready && !placing;
+            if (buildingButtons == null)
+                return;
+
+            foreach (BuildingButtonUI option in buildingButtons)
+                if (option != null)
+                    option.SetInteractable(ready && !placing);
         }
 
         private void SetPreviewColor(bool valid)
@@ -246,17 +266,14 @@ namespace MonsterSurvivor.Construction
 
             if (notificationRoutine != null)
                 StopCoroutine(notificationRoutine);
-
             notificationRoutine = StartCoroutine(ClearNotification());
         }
 
         private IEnumerator ClearNotification()
         {
             yield return new WaitForSeconds(notificationDuration);
-
             if (notificationLabel != null)
                 notificationLabel.gameObject.SetActive(false);
-
             notificationRoutine = null;
         }
 
@@ -266,9 +283,16 @@ namespace MonsterSurvivor.Construction
                 encounter.Changed -= RefreshUI;
             if (inventory != null && inventory.Wallet != null)
                 inventory.Wallet.Changed -= RefreshUI;
-            if (turretButton != null)
-                turretButton.onClick.RemoveListener(SelectTurret);
+
+            if (buildingButtons != null)
+            {
+                foreach (BuildingButtonUI option in buildingButtons)
+                    if (option != null)
+                        option.Clicked -= SelectBuilding;
+            }
+
             CancelPlacement();
+            selectedOption = null;
 
             if (notificationRoutine != null)
             {
