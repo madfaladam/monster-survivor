@@ -34,5 +34,13 @@ namespace MonsterSurvivor.Combat
             }
             return nearest;
         }
+        public void StopAllCombat()
+        {
+            foreach (EnemyController enemy in enemies)
+            {
+                if (enemy != null)
+                    enemy.StopCombat();
+            }
+        }
     }
 }

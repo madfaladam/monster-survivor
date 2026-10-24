@@ -29,5 +29,12 @@ namespace MonsterSurvivor.Combat
             if (died)
                 Died?.Invoke();
         }
+                
+        public void Reset()
+        {
+            Current = Maximum;
+            Changed?.Invoke();
+        }
+
     }
 }

@@ -18,8 +18,9 @@ namespace MonsterSurvivor.Combat
 
         public Vector2 MoveDirection { get; private set; }
         public bool IsCombatActive { get; private set; }
-        public bool IsAlive => isActiveAndEnabled && health.IsAlive;
+        public bool IsAlive => isActiveAndEnabled && health != null && health.IsAlive;
         public event Action<EnemyController> Removed;
+        private bool removalReported;
 
         private void Awake()
         {
@@ -54,6 +55,23 @@ namespace MonsterSurvivor.Combat
             MoveDirection = Vector2.zero;
             if (body != null)
                 body.linearVelocity = Vector2.zero;
+        }
+                
+        public void PrepareForSpawn(
+            Health target,
+            Collider2D targetCollider,
+            Transform[] path)
+        {
+            StopCombat();
+
+            removalReported = false;
+            goal = target;
+            goalCollider = targetCollider;
+            waypoints = path;
+            waypointIndex = 0;
+            cooldown = new AttackCooldown(definition.AttackInterval);
+
+            health.ResetHealth();
         }
 
         private void FixedUpdate()
@@ -97,12 +115,28 @@ namespace MonsterSurvivor.Combat
                 health.TakeDamage(amount);
         }
 
-        private void HandleDeath() => gameObject.SetActive(false);
+                
+        private void HandleDeath()
+        {
+            if (removalReported)
+                return;
+
+            removalReported = true;
+            StopCombat();
+            Removed?.Invoke(this);
+        }
+
 
         private void OnDisable()
         {
+            bool wasInCombat = IsCombatActive;
             StopCombat();
-            Removed?.Invoke(this);
+
+            if (wasInCombat && !removalReported)
+            {
+                removalReported = true;
+                Removed?.Invoke(this);
+            }
         }
 
         private void OnDestroy()

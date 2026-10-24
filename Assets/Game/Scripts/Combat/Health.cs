@@ -27,8 +27,13 @@ namespace MonsterSurvivor.Combat
             if (isActiveAndEnabled)
                 state.TakeDamage(amount);
         }
-
+        
         private void NotifyChanged() => Changed?.Invoke();
         private void NotifyDeath() => Died?.Invoke();
+                
+        public void ResetHealth()
+        {
+            state?.Reset();
+        }
     }
 }
