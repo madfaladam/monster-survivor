@@ -1,3 +1,4 @@
+
 using MonsterSurvivor.Combat;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,6 +9,7 @@ namespace MonsterSurvivor.UI
     public sealed class CombatHUD : MonoBehaviour
     {
         [SerializeField] private CombatEncounter encounter;
+        [SerializeField] private WaveDirector waveDirector;
         [SerializeField] private Health generator;
         [SerializeField] private Text label;
 
@@ -18,6 +20,9 @@ namespace MonsterSurvivor.UI
         {
             encounter.Changed += Refresh;
             generator.Changed += Refresh;
+
+            if (waveDirector != null)
+                waveDirector.Changed += Refresh;
         }
 
         private void Start() => Refresh();
@@ -26,19 +31,47 @@ namespace MonsterSurvivor.UI
         {
             encounter.Changed -= Refresh;
             generator.Changed -= Refresh;
+
+            if (waveDirector != null)
+                waveDirector.Changed -= Refresh;
         }
 
         private void Refresh()
         {
             string status;
-            switch (encounter.State)
+
+            if (encounter.State == EncounterState.Finished)
             {
-                case EncounterState.Ready: status = "Prepare defenses | Space: start combat"; break;
-                case EncounterState.Active: status = $"Defending | Enemies: {encounter.RemainingEnemies}"; break;
-                case EncounterState.Cleared: status = "Encounter cleared"; break;
-                default: status = "Generator destroyed"; break;
+                status = "All Waves Cleared | Encounter Finished";
             }
-            label.text = $"Generator: {generator.Current}/{generator.Maximum} | {status} | R: restart";
+            else if (encounter.State == EncounterState.Active)
+            {
+                status = $"Wave {waveDirector.CurrentWave}/{waveDirector.TotalWaves} | " +
+                        $"Enemies: {encounter.RemainingEnemies}";
+            }
+            else if (encounter.State == EncounterState.Ready)
+            {
+                if (waveDirector != null && waveDirector.CompletedWaves > 0)
+                {
+                    status = $"Wave {waveDirector.CompletedWaves} Cleared | " +
+                            $"Prepare Defenses | Next Wave: {waveDirector.CurrentWave}";
+                }
+                else
+                {
+                    status = "Prepare Build | Next Wave: 1";
+                }
+            }
+            else if (encounter.State == EncounterState.Cleared)
+            {
+                status = "Encounter cleared";
+            }
+            else
+            {
+                status = "Generator destroyed";
+            }
+            
+            label.text =
+                $"Generator: {generator.Current}/{generator.Maximum} | {status} | R: restart";
         }
     }
 }

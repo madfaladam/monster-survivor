@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MonsterSurvivor.Combat
 {
-    public enum EncounterState { Ready, Active, Cleared, Defeated }
+    public enum EncounterState { Ready, Active, Cleared, Defeated, Finished }
 
     [DisallowMultipleComponent]
     public sealed class CombatEncounter : MonoBehaviour
@@ -122,17 +122,28 @@ namespace MonsterSurvivor.Combat
             if (State != EncounterState.Active)
                 return;
 
+            StopActors();
+
             if (generator == null || !generator.IsAlive)
             {
                 Finish(EncounterState.Defeated);
                 return;
             }
 
-            StopActors();
-            State = EncounterState.Ready;
+            if (waveDirector != null && waveDirector.IsFinished)
+            {
+                State = EncounterState.Finished;
 
-            if (builder != null)
-                builder.enabled = true;
+                if (builder != null)
+                    builder.enabled = false;
+            }
+            else
+            {
+                State = EncounterState.Ready;
+
+                if (builder != null)
+                    builder.enabled = true;
+            }
 
             Changed?.Invoke();
         }

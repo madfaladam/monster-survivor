@@ -17,22 +17,26 @@ namespace MonsterSurvivor.Combat
         private int aliveEnemies;
         private bool running;
 
-        public int CurrentWave => currentWave + 1;
+        public int CurrentWave => Mathf.Min(currentWave + 1, enemiesPerWave.Length);
         public int TotalWaves => enemiesPerWave.Length;
+        public bool IsRunning => running;
+        public int CompletedWaves => currentWave;
+        public bool IsFinished => currentWave >= TotalWaves;
+
+        public event System.Action Changed;
 
         public void BeginWaves()
         {
             if (running || encounter == null || gate == null ||
-                enemiesPerWave == null || enemiesPerWave.Length == 0)
+                enemiesPerWave == null || enemiesPerWave.Length == 0 ||
+                currentWave >= enemiesPerWave.Length)
                 return;
-
-            if (currentWave >= enemiesPerWave.Length)
-                currentWave = 0;
 
             running = true;
             aliveEnemies = 0;
             pendingSpawns = 0;
             routine = StartCoroutine(RunWaves());
+            Changed?.Invoke();
         }
 
         private IEnumerator RunWaves()
@@ -64,6 +68,7 @@ namespace MonsterSurvivor.Combat
 
                 // Satu wave selesai: kembali ke prepare/build.
                 currentWave++;
+                Changed?.Invoke();
                 running = false;
                 routine = null;
 
@@ -88,6 +93,7 @@ namespace MonsterSurvivor.Combat
                 StopCoroutine(routine);
 
             routine = null;
+            Changed?.Invoke();
         }
     }
 }

@@ -615,6 +615,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   encounter: {fileID: 960302}
+  waveDirector: {fileID: 1306018138}
   generator: {fileID: 960100}
   label: {fileID: 960503}
 --- !u!1 &960310
