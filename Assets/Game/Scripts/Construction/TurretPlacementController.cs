@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Player;
 using MonsterSurvivor.Resources;
@@ -31,6 +32,7 @@ namespace MonsterSurvivor.Construction
         private SpriteRenderer[] previewRenderers;
         private bool placing;
         private Coroutine notificationRoutine;
+        private readonly List<Collider2D> overlapResults = new List<Collider2D>(16);
 
         private void Awake()
         {
@@ -135,8 +137,8 @@ namespace MonsterSurvivor.Construction
             preview.name = $"{option.Prefab.name} (Placement Preview)";
             foreach (MonoBehaviour behaviour in preview.GetComponentsInChildren<MonoBehaviour>(true))
                 behaviour.enabled = false;
-            foreach (Collider2D collider in preview.GetComponentsInChildren<Collider2D>(true))
-                collider.enabled = false;
+            // Keep preview colliders enabled so placement checks use the building's real shape.
+            // Rigidbody simulation stays disabled, so the preview does not participate in physics.
             foreach (Rigidbody2D body in preview.GetComponentsInChildren<Rigidbody2D>(true))
                 body.simulated = false;
 
@@ -178,18 +180,59 @@ namespace MonsterSurvivor.Construction
             if (placementArea != null && !placementArea.OverlapPoint(position))
                 return false;
 
-            Collider2D[] overlaps = Physics2D.OverlapCircleAll(position, placementRadius, blockedLayers);
-            foreach (Collider2D overlap in overlaps)
+            // Use the selected prefab's collider shapes instead of a fixed circle around its pivot.
+            // This allows barricades to sit flush together when their colliders do not overlap.
+            Collider2D[] candidateColliders = preview != null
+                ? preview.GetComponentsInChildren<Collider2D>(true)
+                : System.Array.Empty<Collider2D>();
+
+            if (candidateColliders.Length == 0)
             {
-                if (overlap == null || overlap == placementArea)
+                // Fallback for prefabs without colliders.
+                Collider2D[] overlaps = Physics2D.OverlapCircleAll(position, placementRadius, blockedLayers);
+                foreach (Collider2D overlap in overlaps)
+                    if (!IsIgnoredPlacementCollider(overlap))
+                        return false;
+                return true;
+            }
+
+            ContactFilter2D filter = new ContactFilter2D();
+            filter.SetLayerMask(blockedLayers);
+            filter.useTriggers = true;
+
+            foreach (Collider2D candidate in candidateColliders)
+            {
+                if (candidate == null || !candidate.enabled)
                     continue;
-                if (inventory != null &&
-                    (overlap.transform == inventory.transform || overlap.transform.IsChildOf(inventory.transform)))
-                    continue;
-                return false;
+
+                overlapResults.Clear();
+                candidate.Overlap(filter, overlapResults);
+                foreach (Collider2D overlap in overlapResults)
+                {
+                    if (!IsIgnoredPlacementCollider(overlap))
+                        return false;
+                }
             }
 
             return true;
+        }
+
+        private bool IsIgnoredPlacementCollider(Collider2D overlap)
+        {
+            if (overlap == null || overlap == placementArea)
+                return true;
+
+            // Ignore colliders belonging to the preview itself.
+            if (preview != null &&
+                (overlap.transform == preview.transform || overlap.transform.IsChildOf(preview.transform)))
+                return true;
+
+            // Ignore the player's own colliders.
+            if (inventory != null &&
+                (overlap.transform == inventory.transform || overlap.transform.IsChildOf(inventory.transform)))
+                return true;
+
+            return false;
         }
 
         private Vector2 ScreenToWorld(Vector2 screenPosition)

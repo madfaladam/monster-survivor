@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 2688616231290130377}
   - component: {fileID: 3312615439174015844}
   - component: {fileID: 8044497537522424373}
-  m_Layer: 20
+  m_Layer: 21
   m_Name: enemy-gate
   m_TagString: Untagged
   m_Icon: {fileID: 0}

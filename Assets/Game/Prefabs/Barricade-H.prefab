@@ -446,7 +446,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 2.1
+  m_Radius: 0.86
 --- !u!114 &7221582499048253793
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fb3587a62e2487fb4ae2339598460ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  site: {fileID: 0}
+  site: {fileID: 7856280597926796990}
 --- !u!1 &8998115300835776260
 GameObject:
   m_ObjectHideFlags: 0
@@ -474,7 +474,7 @@ GameObject:
   - component: {fileID: 6300892529771195291}
   - component: {fileID: 7856280597926796990}
   - component: {fileID: 772010796416723204}
-  m_Layer: 20
+  m_Layer: 21
   m_Name: Barricade-H
   m_TagString: Untagged
   m_Icon: {fileID: 0}

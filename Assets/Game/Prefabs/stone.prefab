@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4839542418934115941}
   - component: {fileID: 3721461586395751129}
   - component: {fileID: 920102}
-  m_Layer: 20
+  m_Layer: 21
   m_Name: stone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -144,6 +144,20 @@ PolygonCollider2D:
       - {x: 0.19029999, y: 0.026768684}
       - {x: 0.55138874, y: 0.2468406}
   m_UseDelaunayMesh: 0
+--- !u!114 &920102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2272912109574220426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75e0b8838ff84cb6ba8cc212fd5c9a32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  resourceType: 1
+  amount: 1
 --- !u!1 &8202839598746090750
 GameObject:
   m_ObjectHideFlags: 0
@@ -231,17 +245,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 1
---- !u!114 &920102
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2272912109574220426}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 75e0b8838ff84cb6ba8cc212fd5c9a32, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  resourceType: 1
-  amount: 1

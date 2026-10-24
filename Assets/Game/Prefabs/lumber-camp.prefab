@@ -479,7 +479,7 @@ GameObject:
   - component: {fileID: 950100}
   - component: {fileID: 950101}
   - component: {fileID: 950102}
-  m_Layer: 20
+  m_Layer: 21
   m_Name: lumber-camp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
