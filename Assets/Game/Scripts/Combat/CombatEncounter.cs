@@ -113,6 +113,8 @@ namespace MonsterSurvivor.Combat
             }
 
             enemy.BeginCombat();
+
+            Changed?.Invoke();
         }
 
         public void CompleteWaves()
@@ -120,9 +122,19 @@ namespace MonsterSurvivor.Combat
             if (State != EncounterState.Active)
                 return;
 
-            Finish(generator != null && generator.IsAlive
-                ? EncounterState.Cleared
-                : EncounterState.Defeated);
+            if (generator == null || !generator.IsAlive)
+            {
+                Finish(EncounterState.Defeated);
+                return;
+            }
+
+            StopActors();
+            State = EncounterState.Ready;
+
+            if (builder != null)
+                builder.enabled = true;
+
+            Changed?.Invoke();
         }
         
         private void HandleEnemyRemoved(EnemyController enemy)

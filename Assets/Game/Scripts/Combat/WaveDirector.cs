@@ -26,8 +26,10 @@ namespace MonsterSurvivor.Combat
                 enemiesPerWave == null || enemiesPerWave.Length == 0)
                 return;
 
+            if (currentWave >= enemiesPerWave.Length)
+                currentWave = 0;
+
             running = true;
-            currentWave = 0;
             aliveEnemies = 0;
             pendingSpawns = 0;
             routine = StartCoroutine(RunWaves());
@@ -43,9 +45,8 @@ namespace MonsterSurvivor.Combat
                 {
                     EnemyController enemy = encounter.SpawnEnemyFromGate(gate);
 
-                    // Count enemies only when they were successfully spawned.
                     if (enemy != null)
-                        aliveEnemies ++;
+                        aliveEnemies++;
 
                     pendingSpawns--;
 
@@ -58,21 +59,21 @@ namespace MonsterSurvivor.Combat
                 while (aliveEnemies > 0 && running)
                     yield return null;
 
-                currentWave++;
+                if (!running)
+                    yield break;
 
-                if (currentWave < enemiesPerWave.Length && running &&
-                    waveDelay > 0f)
-                    yield return new WaitForSeconds(waveDelay);
+                // Satu wave selesai: kembali ke prepare/build.
+                currentWave++;
+                running = false;
+                routine = null;
+
+                encounter.CompleteWaves();
+                yield break;
             }
 
-            bool completed = running && currentWave >= enemiesPerWave.Length;
             running = false;
             routine = null;
-
-            if (completed && encounter != null)
-                encounter.CompleteWaves();
         }
-
         public void NotifyEnemyRemoved()
         {
             if (aliveEnemies > 0)
