@@ -17,6 +17,7 @@ namespace MonsterSurvivor.Construction
         [SerializeField] private Camera worldCamera;
         [SerializeField] private GameObject buildPanel;
         [SerializeField] private Button turretButton;
+        [SerializeField] private Text turretPriceLabel;
         [SerializeField] private Text turretButtonLabel;
         [SerializeField] private Text notificationLabel;
         [SerializeField, Min(0.1f)] private float notificationDuration = 2f;
@@ -109,7 +110,7 @@ namespace MonsterSurvivor.Construction
             if (!CanAfford())
             {
                 ShowNotification(
-                    $"Resource tidak cukup. Butuh {definition.WoodCost} Wood + {definition.StoneCost} Stone.");
+                    $"Resource is not enough. need {definition.WoodCost} Wood + {definition.StoneCost} Stone.");
                 return;
             }
 
@@ -140,7 +141,7 @@ namespace MonsterSurvivor.Construction
             if (site == null || turret == null || !site.BeginAutoConstruction(inventory.Wallet))
             {
                 Destroy(building);
-                ShowNotification("Gagal membangun turret. Periksa resource dan prefab.");
+                ShowNotification("Failed to build turret. Check resources and prefab.");
                 CancelPlacement();
                 RefreshUI();
                 return;
@@ -197,7 +198,11 @@ namespace MonsterSurvivor.Construction
                 buildPanel.SetActive(ready);
 
             if (turretButtonLabel != null && definition != null)
-                turretButtonLabel.text = $"{definition.DisplayName}\n{definition.WoodCost} Wood + {definition.StoneCost} Stone";
+                turretButtonLabel.text = $"{definition.DisplayName}";
+
+            if (turretPriceLabel != null && definition != null)
+                turretPriceLabel.text = $"{definition.WoodCost} Wood\n{definition.StoneCost} Stone";
+
             if (!ready || (placing && !CanAfford()))
                 CancelPlacement();
 
