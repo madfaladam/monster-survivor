@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MonsterSurvivor.Player;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace MonsterSurvivor.Combat
         [SerializeField] private Transform[] waypoints;
         [SerializeField] private WaveDirector waveDirector;
         private readonly EnemyRoster roster = new EnemyRoster();
+        private readonly HashSet<TurretController> registeredTurrets = new HashSet<TurretController>();
         private bool initialized;
 
         public EncounterState State { get; private set; }
@@ -36,7 +38,7 @@ namespace MonsterSurvivor.Combat
                     Physics2D.IgnoreCollision(playerCollider, enemyCollider);
             }
             foreach (TurretController turret in turrets)
-                turret.Initialize(roster);
+                RegisterTurret(turret);
             initialized = true;
             Changed?.Invoke();
         }
@@ -55,7 +57,7 @@ namespace MonsterSurvivor.Combat
             // Disabling the interactor cancels and refunds any unfinished construction.
             builder.enabled = false;
             
-            foreach (TurretController turret in turrets)
+            foreach (TurretController turret in registeredTurrets)
                 turret.SetCombatEnabled(true);
 
             if (waveDirector != null)
@@ -115,6 +117,15 @@ namespace MonsterSurvivor.Combat
             enemy.BeginCombat();
 
             Changed?.Invoke();
+        }
+
+        public void RegisterTurret(TurretController turret)
+        {
+            if (turret == null || !registeredTurrets.Add(turret))
+                return;
+
+            turret.Initialize(roster);
+            turret.SetCombatEnabled(State == EncounterState.Active);
         }
 
         public void CompleteWaves()
@@ -204,7 +215,7 @@ namespace MonsterSurvivor.Combat
                 if (enemy != null)
                     enemy.StopCombat();
 
-            foreach (TurretController turret in turrets)
+            foreach (TurretController turret in registeredTurrets)
                 if (turret != null)
                     turret.SetCombatEnabled(false);
         }

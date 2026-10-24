@@ -8,6 +8,7 @@ namespace MonsterSurvivor.Construction
     public sealed class ConstructionSite : MonoBehaviour
     {
         [SerializeField] private BuildingDefinition definition;
+        private bool autoAdvance;
         private ConstructionProcess process;
 
         public BuildingDefinition Definition => definition;
@@ -28,6 +29,18 @@ namespace MonsterSurvivor.Construction
 
             process = new ConstructionProcess(definition.WoodCost, definition.StoneCost,
                 definition.BuildDuration);
+        }
+
+        private void Update()
+        {
+            if (autoAdvance && IsBuilding)
+                Advance(Time.deltaTime);
+        }
+
+        public bool BeginAutoConstruction(IResourceWallet wallet)
+        {
+            autoAdvance = true;
+            return TryBegin(wallet);
         }
 
         public bool TryBegin(IResourceWallet wallet)
