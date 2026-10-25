@@ -1,8 +1,8 @@
 using System.Collections;
-using System.Collections.Generic;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Player;
 using MonsterSurvivor.Resources;
+using MonsterSurvivor.Stats;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -28,14 +28,18 @@ namespace MonsterSurvivor.Construction
         [SerializeField, Min(0.1f)] private float placementRadius = 0.5f;
 
         private BuildingButtonUI selectedOption;
+        private GameSessionStats gameStats;
         private GameObject preview;
         private SpriteRenderer[] previewRenderers;
         private bool placing;
         private Coroutine notificationRoutine;
-        private readonly List<Collider2D> overlapResults = new List<Collider2D>(16);
 
         private void Awake()
         {
+            gameStats = FindFirstObjectByType<GameSessionStats>();
+            if (gameStats == null)
+                Debug.LogWarning("GameSessionStats was not found; building stats will not be recorded.", this);
+
             if (encounter == null || inventory == null || worldCamera == null)
             {
                 Debug.LogError("Assign encounter, inventory, and camera.", this);
@@ -137,8 +141,8 @@ namespace MonsterSurvivor.Construction
             preview.name = $"{option.Prefab.name} (Placement Preview)";
             foreach (MonoBehaviour behaviour in preview.GetComponentsInChildren<MonoBehaviour>(true))
                 behaviour.enabled = false;
-            // Keep preview colliders enabled so placement checks use the building's real shape.
-            // Rigidbody simulation stays disabled, so the preview does not participate in physics.
+            foreach (Collider2D collider in preview.GetComponentsInChildren<Collider2D>(true))
+                collider.enabled = false;
             foreach (Rigidbody2D body in preview.GetComponentsInChildren<Rigidbody2D>(true))
                 body.simulated = false;
 
@@ -166,6 +170,12 @@ namespace MonsterSurvivor.Construction
                 return;
             }
 
+            // Register build statistics only after placement and construction start succeed.
+            BuildingStatsReporter statsReporter = building.GetComponent<BuildingStatsReporter>();
+            if (statsReporter == null)
+                statsReporter = building.AddComponent<BuildingStatsReporter>();
+            statsReporter.Initialize(site, gameStats);
+
             TurretController turret = building.GetComponentInChildren<TurretController>();
             if (turret != null)
                 encounter.RegisterTurret(turret);
@@ -180,59 +190,18 @@ namespace MonsterSurvivor.Construction
             if (placementArea != null && !placementArea.OverlapPoint(position))
                 return false;
 
-            // Use the selected prefab's collider shapes instead of a fixed circle around its pivot.
-            // This allows barricades to sit flush together when their colliders do not overlap.
-            Collider2D[] candidateColliders = preview != null
-                ? preview.GetComponentsInChildren<Collider2D>(true)
-                : System.Array.Empty<Collider2D>();
-
-            if (candidateColliders.Length == 0)
+            Collider2D[] overlaps = Physics2D.OverlapCircleAll(position, placementRadius, blockedLayers);
+            foreach (Collider2D overlap in overlaps)
             {
-                // Fallback for prefabs without colliders.
-                Collider2D[] overlaps = Physics2D.OverlapCircleAll(position, placementRadius, blockedLayers);
-                foreach (Collider2D overlap in overlaps)
-                    if (!IsIgnoredPlacementCollider(overlap))
-                        return false;
-                return true;
-            }
-
-            ContactFilter2D filter = new ContactFilter2D();
-            filter.SetLayerMask(blockedLayers);
-            filter.useTriggers = true;
-
-            foreach (Collider2D candidate in candidateColliders)
-            {
-                if (candidate == null || !candidate.enabled)
+                if (overlap == null || overlap == placementArea)
                     continue;
-
-                overlapResults.Clear();
-                candidate.Overlap(filter, overlapResults);
-                foreach (Collider2D overlap in overlapResults)
-                {
-                    if (!IsIgnoredPlacementCollider(overlap))
-                        return false;
-                }
+                if (inventory != null &&
+                    (overlap.transform == inventory.transform || overlap.transform.IsChildOf(inventory.transform)))
+                    continue;
+                return false;
             }
 
             return true;
-        }
-
-        private bool IsIgnoredPlacementCollider(Collider2D overlap)
-        {
-            if (overlap == null || overlap == placementArea)
-                return true;
-
-            // Ignore colliders belonging to the preview itself.
-            if (preview != null &&
-                (overlap.transform == preview.transform || overlap.transform.IsChildOf(preview.transform)))
-                return true;
-
-            // Ignore the player's own colliders.
-            if (inventory != null &&
-                (overlap.transform == inventory.transform || overlap.transform.IsChildOf(inventory.transform)))
-                return true;
-
-            return false;
         }
 
         private Vector2 ScreenToWorld(Vector2 screenPosition)
