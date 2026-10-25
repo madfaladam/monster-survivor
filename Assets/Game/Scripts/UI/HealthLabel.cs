@@ -10,9 +10,7 @@ namespace MonsterSurvivor.UI
         [SerializeField] private Health health;
         [SerializeField] private Text label;
 
-        private void Awake() =>
-            label.font = UnityEngine.Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
+        public GameObject HealthStatusObject => label.transform.parent.gameObject;
         private void OnEnable() => health.Changed += Refresh;
         private void Start() => Refresh();
         private void OnDisable() => health.Changed -= Refresh;
