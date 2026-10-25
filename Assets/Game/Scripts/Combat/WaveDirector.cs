@@ -9,7 +9,7 @@ namespace MonsterSurvivor.Combat
         [SerializeField] private EnemyGate gate;
         [SerializeField, Min(1)] private int[] enemiesPerWave = { 3, 5, 8 };
         [SerializeField, Min(0f)] private float spawnInterval = 0.5f;
-        [SerializeField, Min(0f)] private float waveDelay = 2f;
+        //[SerializeField, Min(0f)] private float waveDelay = 2f;
 
         private Coroutine routine;
         private int currentWave;

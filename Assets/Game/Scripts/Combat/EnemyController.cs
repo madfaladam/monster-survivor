@@ -21,7 +21,8 @@ namespace MonsterSurvivor.Combat
         public bool IsAlive => isActiveAndEnabled && health != null && health.IsAlive;
         public event Action<EnemyController> Removed;
         private bool removalReported;
-
+        public event Action<EnemyController> Killed;
+        
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
@@ -124,6 +125,7 @@ namespace MonsterSurvivor.Combat
             removalReported = true;
             StopCombat();
             Removed?.Invoke(this);
+            Killed?.Invoke(this);
         }
 
 

@@ -25,7 +25,7 @@ namespace MonsterSurvivor.Combat
         public EncounterState State { get; private set; }
         public int RemainingEnemies => roster.Count;
         public event Action Changed;
-
+        public event Action<EnemyController> EnemyKilled;
         private void Start()
         {
             generator.Died += HandleGeneratorDeath;
@@ -108,6 +108,9 @@ namespace MonsterSurvivor.Combat
             enemy.Removed -= HandleEnemyRemoved;
             enemy.Removed += HandleEnemyRemoved;
 
+            enemy.Killed -= HandleEnemyKilled;
+            enemy.Killed += HandleEnemyKilled;
+
             if (playerCollider != null &&
                 enemy.TryGetComponent(out Collider2D enemyCollider))
             {
@@ -188,7 +191,10 @@ namespace MonsterSurvivor.Combat
             else
                 Changed?.Invoke();
         }
-
+        private void HandleEnemyKilled(EnemyController enemy)
+        {
+            EnemyKilled?.Invoke(enemy);
+        }
 
         private void HandleGeneratorDeath() => Finish(EncounterState.Defeated);
 
