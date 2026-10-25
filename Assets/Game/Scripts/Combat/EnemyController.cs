@@ -21,9 +21,19 @@ namespace MonsterSurvivor.Combat
         private Health buildingTarget;
         private Collider2D buildingTargetCollider;
 
+        // OPTIMIZATION 1: Shared buffer & filter for modern Zero-Allocation Physics (Unity 6+)
+        private static readonly Collider2D[] hitBuffer = new Collider2D[16];
+        private static ContactFilter2D scanFilter;
+        private static bool filterInitialized;
+
+        // OPTIMIZATION 2: Scan throttling to avoid heavy CPU load every FixedUpdate
+        private float scanTimer;
+        private const float ScanInterval = 0.25f;
+
         public Vector2 MoveDirection { get; private set; }
         public bool IsCombatActive { get; private set; }
         public bool IsAlive => isActiveAndEnabled && health != null && health.IsAlive;
+        
         public event Action<EnemyController> Removed;
         private bool removalReported;
         public event Action<EnemyController> Killed;
@@ -33,6 +43,16 @@ namespace MonsterSurvivor.Combat
             body = GetComponent<Rigidbody2D>();
             health = GetComponent<Health>();
             health.Died += HandleDeath;
+
+            // Inisialisasi ContactFilter2D secara statis sekali saja untuk semua instance
+            if (!filterInitialized)
+            {
+                scanFilter = new ContactFilter2D();
+                scanFilter.NoFilter(); // Gunakan default (mendeteksi layer apa saja yang bertabrakan)
+                scanFilter.useTriggers = true; // Karena di kode aslimu bisa jadi ada trigger
+                filterInitialized = true;
+            }
+
             if (definition == null)
             {
                 Debug.LogError("Assign an enemy definition.", this);
@@ -54,6 +74,7 @@ namespace MonsterSurvivor.Combat
             waypointIndex = 0;
             buildingTarget = null;
             buildingTargetCollider = null;
+            scanTimer = 0f;
             IsCombatActive = IsAlive && goal != null && goalCollider != null;
         }
 
@@ -74,6 +95,7 @@ namespace MonsterSurvivor.Combat
             goalCollider = targetCollider;
             waypoints = path;
             waypointIndex = 0;
+            scanTimer = 0f;
             cooldown = new AttackCooldown(definition.AttackInterval);
             health.ResetHealth();
         }
@@ -86,36 +108,57 @@ namespace MonsterSurvivor.Combat
                 return;
             }
 
-            cooldown.Advance(Time.fixedDeltaTime);
+            float dt = Time.fixedDeltaTime;
+            cooldown.Advance(dt);
 
-            // Keep attacking the current building until it dies or is no longer a valid target.
+            float attackRangeSqr = definition.AttackRange * definition.AttackRange;
+
+            // Memastikan target saat ini masih hidup dan dalam radius pencarian
             if (!IsValidBuildingTarget(buildingTarget, buildingTargetCollider) ||
-                DistanceTo(buildingTargetCollider) > definition.AttackRange)
+                DistanceToSqr(buildingTargetCollider) > attackRangeSqr)
             {
                 buildingTarget = null;
                 buildingTargetCollider = null;
-                FindBuildingTarget();
-            }
 
-            if (buildingTarget != null && buildingTargetCollider != null)
-            {
-                Vector2 targetPoint = buildingTargetCollider.ClosestPoint(body.position);
-                if ((targetPoint - body.position).sqrMagnitude <= definition.AttackRange * definition.AttackRange)
+                // Scan Throttling: Jangan scan setiap frame, tunggu interval habis
+                scanTimer -= dt;
+                if (scanTimer <= 0f)
                 {
-                    StopMovement();
-                    if (cooldown.TryAttack()) buildingTarget.TakeDamage(definition.Damage);
-                    return;
+                    FindBuildingTarget();
+                    scanTimer = ScanInterval;
                 }
             }
 
-            Vector2 goalPoint = goalCollider.ClosestPoint(body.position);
-            if ((goalPoint - body.position).sqrMagnitude <= definition.AttackRange * definition.AttackRange)
+            // Jika punya target bangunan (Barricade/Turret), serang itu dulu
+            if (buildingTarget != null && buildingTargetCollider != null)
             {
-                StopMovement();
+                Vector2 targetPoint = buildingTargetCollider.ClosestPoint(body.position);
+                Vector2 targetDelta = targetPoint - body.position;
+                
+                if (targetDelta.sqrMagnitude <= attackRangeSqr)
+                {
+                    MoveDirection = targetDelta.normalized;
+                    body.linearVelocity = Vector2.zero;
+                    if (cooldown.TryAttack()) buildingTarget.TakeDamage(definition.Damage);
+                    return;
+                }
+
+                MoveDirection = targetDelta.normalized;
+                body.linearVelocity = MoveDirection * definition.MoveSpeed;
+                return;
+            }
+
+            // Jika tidak ada bangunan terdekat, majulah menuju Generator utama (goal)
+            Vector2 goalPoint = goalCollider.ClosestPoint(body.position);
+            if ((goalPoint - body.position).sqrMagnitude <= attackRangeSqr)
+            {
+                MoveDirection = (goalPoint - body.position).normalized;
+                body.linearVelocity = Vector2.zero;
                 if (cooldown.TryAttack()) goal.TakeDamage(definition.Damage);
                 return;
             }
 
+            // Pathfinding menggunakan Waypoints (jika ada)
             while (waypoints != null && waypointIndex < waypoints.Length)
             {
                 Transform point = waypoints[waypointIndex];
@@ -125,20 +168,31 @@ namespace MonsterSurvivor.Combat
 
             Vector2 destination = waypoints != null && waypointIndex < waypoints.Length
                 ? (Vector2)waypoints[waypointIndex].position : goalPoint;
+            
             Vector2 delta = destination - body.position;
+            
+            // OPTIMIZATION 3: Gunakan sqrMagnitude daripada memanggil .magnitude (operasi Sqrt yang mahal)
+            if (delta.sqrMagnitude <= 0.000001f)
+            {
+                StopMovement();
+                return;
+            }
+
             MoveDirection = delta.normalized;
-            body.linearVelocity = MoveDirection * Mathf.Min(definition.MoveSpeed, delta.magnitude / Time.fixedDeltaTime);
+            body.linearVelocity = MoveDirection * definition.MoveSpeed;
         }
 
         private void FindBuildingTarget()
         {
-            // Include trigger colliders and colliders on child objects; Health/ConstructionSite may be on parents.
-            Collider2D[] hits = Physics2D.OverlapCircleAll(body.position, definition.AttackRange + buildingScanPadding);
+            // Unity 6+ Zero-Allocation API untuk Physics2D
+            int hitCount = Physics2D.OverlapCircle(body.position, definition.AttackRange + buildingScanPadding, scanFilter, hitBuffer);
             float nearestSqrDistance = float.PositiveInfinity;
 
-            foreach (Collider2D hit in hits)
+            for (int i = 0; i < hitCount; i++)
             {
+                Collider2D hit = hitBuffer[i];
                 if (hit == null || hit.transform == transform || hit.transform.IsChildOf(transform)) continue;
+                
                 Health candidateHealth = hit.GetComponentInParent<Health>();
                 if (candidateHealth == null || candidateHealth == goal || !candidateHealth.IsAlive) continue;
 
@@ -147,12 +201,17 @@ namespace MonsterSurvivor.Combat
 
                 Vector2 closestPoint = hit.ClosestPoint(body.position);
                 float distanceSqr = (closestPoint - body.position).sqrMagnitude;
+                
                 if (distanceSqr > definition.AttackRange * definition.AttackRange || distanceSqr >= nearestSqrDistance) continue;
 
                 buildingTarget = candidateHealth;
                 buildingTargetCollider = hit;
                 nearestSqrDistance = distanceSqr;
             }
+            
+            // PENTING: Bersihkan buffer array statis ini agar Collider bangunan yang hancur 
+            // tidak tertahan di memori (mencegah Memory Leak dari dangling references).
+            Array.Clear(hitBuffer, 0, hitCount);
         }
 
         private bool IsValidBuildingTarget(Health target, Collider2D targetCollider)
@@ -162,10 +221,10 @@ namespace MonsterSurvivor.Combat
             return site != null && site.IsBuilt;
         }
 
-        private float DistanceTo(Collider2D targetCollider)
+        private float DistanceToSqr(Collider2D targetCollider)
         {
             if (targetCollider == null) return float.PositiveInfinity;
-            return Vector2.Distance(body.position, targetCollider.ClosestPoint(body.position));
+            return (body.position - (Vector2)targetCollider.ClosestPoint(body.position)).sqrMagnitude;
         }
 
         private void StopMovement()
