@@ -586,6 +586,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 538655dcbeda4c21b1a289bcabf8c231, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  prepareTime: 30
   generator: {fileID: 960100}
   generatorCollider: {fileID: 960101}
   playerCollider: {fileID: 960105}
@@ -24002,6 +24003,79 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1199011572}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1199578579
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1199578581}
+  - component: {fileID: 1199578580}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1199578580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1199578579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 756472f1dee099d47983e46b74584be1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bgmLibrary:
+  - Type: 1
+    Clip: {fileID: 8300000, guid: f0ce276a11e7b4e43bf19e2abbb94f0b, type: 3}
+    Volume: 0.5
+  - Type: 2
+    Clip: {fileID: 8300000, guid: 5929b3f876a5f8045b22e32b9e3f5856, type: 3}
+    Volume: 0.5
+  sfxLibrary:
+  - Type: 7
+    Clip: {fileID: 8300000, guid: 22f0a683e35e0ef438880ac9b913a5f7, type: 3}
+    Volume: 1
+  - Type: 6
+    Clip: {fileID: 8300000, guid: 04173bad9fc6ca149a62b678f259f1dc, type: 3}
+    Volume: 1
+  - Type: 4
+    Clip: {fileID: 8300000, guid: eea8b748d906c394181201adc0dcf747, type: 3}
+    Volume: 1
+  - Type: 3
+    Clip: {fileID: 8300000, guid: 873e3d39342c16f488c8a3a2fe698853, type: 3}
+    Volume: 0.693
+  - Type: 5
+    Clip: {fileID: 8300000, guid: 21368cd18d0253d46aa5fc086242f36c, type: 3}
+    Volume: 1
+  - Type: 2
+    Clip: {fileID: 8300000, guid: fa564614e908a9e42b418fa06eb01d04, type: 3}
+    Volume: 1
+  - Type: 1
+    Clip: {fileID: 8300000, guid: bb1a0698d3e4a1148b4a6749d86717a2, type: 3}
+    Volume: 1
+--- !u!4 &1199578581
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1199578579}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1207593483
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36627,3 +36701,4 @@ SceneRoots:
   - {fileID: 1306018139}
   - {fileID: 926092410}
   - {fileID: 607498877}
+  - {fileID: 1199578581}

@@ -1,4 +1,5 @@
 using System;
+using MonsterSurvivor.Audio;
 using MonsterSurvivor.Construction;
 using UnityEngine;
 
@@ -139,7 +140,12 @@ namespace MonsterSurvivor.Combat
                 {
                     MoveDirection = targetDelta.normalized;
                     body.linearVelocity = Vector2.zero;
-                    if (cooldown.TryAttack()) buildingTarget.TakeDamage(definition.Damage);
+                    if (cooldown.TryAttack()) 
+                    {
+                        
+                        AudioManager.Instance.PlaySFX(SFXType.EnemyAttack); // Play damage sound effect when attacking a building
+                        buildingTarget.TakeDamage(definition.Damage);
+                    }
                     return;
                 }
 
@@ -148,13 +154,17 @@ namespace MonsterSurvivor.Combat
                 return;
             }
 
-            // Jika tidak ada bangunan terdekat, majulah menuju Generator utama (goal)
+            // if no building target found, move towards the goal
             Vector2 goalPoint = goalCollider.ClosestPoint(body.position);
             if ((goalPoint - body.position).sqrMagnitude <= attackRangeSqr)
             {
                 MoveDirection = (goalPoint - body.position).normalized;
                 body.linearVelocity = Vector2.zero;
-                if (cooldown.TryAttack()) goal.TakeDamage(definition.Damage);
+                if (cooldown.TryAttack()) 
+                {
+                    AudioManager.Instance.PlaySFX(SFXType.EnemyAttack);
+                    goal.TakeDamage(definition.Damage);
+                }
                 return;
             }
 
@@ -243,6 +253,9 @@ namespace MonsterSurvivor.Combat
             if (removalReported) return;
             removalReported = true;
             StopCombat();
+            
+            AudioManager.Instance.PlaySFX(SFXType.EnemyDeath);
+
             Removed?.Invoke(this);
             Killed?.Invoke(this);
         }

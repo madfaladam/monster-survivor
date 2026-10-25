@@ -1,3 +1,4 @@
+using MonsterSurvivor.Audio;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Construction;
 using UnityEngine;
@@ -63,6 +64,7 @@ namespace MonsterSurvivor.Stats
             if (stats != null)
                 stats.RecordBuildingDestroyed(kind);
 
+            AudioManager.Instance.PlaySFX(SFXType.BuildingDestroyed);
             // The reporter lives on the building root; remove the whole building on death.
             Destroy(gameObject);
         }

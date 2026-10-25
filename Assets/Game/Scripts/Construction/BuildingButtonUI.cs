@@ -1,4 +1,5 @@
 using System;
+using MonsterSurvivor.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -64,6 +65,10 @@ namespace MonsterSurvivor.Construction
                 button.interactable = interactable;
         }
 
-        private void HandleClick() => Clicked?.Invoke(this);
+        private void HandleClick()
+        {
+            AudioManager.Instance.PlaySFX(SFXType.ButtonClick);
+            Clicked?.Invoke(this);
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections;
+using MonsterSurvivor.Audio;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Player;
 using MonsterSurvivor.Resources;
@@ -180,6 +181,9 @@ namespace MonsterSurvivor.Construction
             if (turret != null)
                 encounter.RegisterTurret(turret);
 
+
+            AudioManager.Instance.PlaySFX(SFXType.BuildingPlaced);
+            
             CancelPlacement();
             selectedOption = null;
             RefreshUI();

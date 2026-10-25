@@ -1,10 +1,10 @@
 # Monster Survivor
 
 ## Game Overview
-A work-in-progress 2D base builder with wave defense for the Bumi Studio technical test.
-The current milestone implements the economy plus one manually started combat
-encounter: build a turret, then defend the generator from a waypoint-following enemy.
-Clearing this encounter is not yet the full three-wave game required by the brief.
+A 2D base builder with wave defense for the Bumi Studio technical test.
+The current milestone implements the economy and a wave-based combat encounter:
+build defenses, manage the preparation timer, and defend the generator from
+waypoint-following enemies across multiple phases.
 
 ## How to Run
 - Engine & version used: Unity 6000.0.75f1, C#.
@@ -23,12 +23,13 @@ Clearing this encounter is not yet the full three-wave game required by the brie
 - Building costs/duration are editable in `Assets/Game/Data/Buildings`; output type,
   interval, and capacity are in `Assets/Game/Data/Production`.
 - Approach the turret site to build it for 6 wood + 4 stone (3 seconds).
-- Press Space when ready. Construction is disabled during combat; an unfinished
+- The preparation phase has an auto-start countdown. Press Space to skip the timer
+and start the combat wave immediately. Construction is disabled during combat; an unfinished
   build is cancelled and refunded. The turret attacks automatically once built.
 - The enemy has 40 HP and attacks the 100-HP generator. Defeat the enemy to clear
   the encounter; generator HP reaching zero ends it in defeat.
 - Press R to reload the scene and reset inventory, buildings, HP, and the encounter.
-- Build location: not available yet.
+- Build location:/Build/
 
 ## Technical Decisions
 - Player input reads a private clone of the existing Input System Move action, keeping
@@ -50,64 +51,46 @@ Clearing this encounter is not yet the full three-wave game required by the brie
 - ConstructionProcess and ProductionBuffer are plain C# classes in separate assemblies
   referencing the wallet contract. Unity components handle proximity and lifecycle,
   while ScriptableObjects configure costs and production.
-- Trigger zones register build candidates without searching the scene. The player
-  selects one nearest site and keeps it until completion or exit. Disabling the
-  player, site, or build zone cancels an unfinished reservation.
 - Building status UI and sprite opacity are embedded in the building prefabs. The
   authored scene hierarchy and building positions are preserved. UI refreshes from
   events, with progress updated only during active construction.
 - HealthState and AttackCooldown are Unity-independent combat rules. Enemy and
   turret attack stats use ScriptableObjects under `Assets/Game/Data/Combat`; maximum
   HP is configured on each prefab Health component.
-- Enemy movement follows explicit scene waypoints, then attacks the closest point
-  on the generator collider. Attack range accounts for the enemy footprint. Player
-  collisions are ignored for this encounter so the worker cannot body-block enemies.
-- Turrets query an injected enemy-target provider, not scene searches or allocating
-  physics queries. A small registered roster is sufficient for this prototype.
-- Shots apply damage immediately (hitscan, without line-of-sight blocking). Each
-  turret reuses one beam renderer and sprite; no projectile object is allocated per
-  attack. The turret body is static so the player cannot push it.
-- CombatEncounter coordinates the single encounter, actor activation, and terminal
-  outcomes. Generator defeat takes priority over a clear notification. The gameplay
-  scene is included in Build Settings so R can reload it in a PC build.
+- Enemy spawning utilizes a custom object pool (Queue and HashSet) to reuse instances
+across waves, preventing runtime instantiation overhead.
+- Enemy targeting uses Physics2D.OverlapCircle with ContactFilter2D and a shared
+static Collider2D[] buffer. This guarantees zero-allocation physics in Unity 6,
+avoiding GC spikes during wave defense.
+- Math calculations in FixedUpdate use sqrMagnitude instead of Vector2.Distance
+to bypass expensive CPU square root operations.
+- AudioManager auto-generates its hierarchy on Awake and uses O(1) dictionary lookups.
+It implements SFX throttling (50ms cooldown per clip) to prevent audio peaking and
+voice stealing when multiple turrets fire or enemies die simultaneously.
+- Shots apply damage immediately (hitscan). Each turret reuses one beam renderer and
+sprite; no projectile object is allocated per attack.
 - No extra framework or dependency was introduced.
-- Visual assets: Cainos, Pixel Art Top Down - Basic (Unity Asset Store).
 
 ## What I Would Do With More Time
-Next milestones: three build/defend cycles, escalating enemy spawning, world pickup
-refill at each build phase, and a run result screen. Then balance construction and
-production costs, add barricades, and validate authored routes in the Windows build.
+Next milestones: world pickup refill at each build phase, and a comprehensive run
+result screen showing wave stats. Then balance construction and production costs,
+add barricades, and validate authored routes in the Windows build.
 
 ## Known Issues
-- This is a single-enemy combat milestone, not the complete playable submission.
-- Production continues during play, including after the encounter ends. The full
-  run lifecycle and stopping economy systems will be connected with wave/game flow.
-- Enemies currently attack only the generator. Turret destruction and barricade
-  interaction are not implemented.
+- This is a single-enemy combat milestone, not the complete playable submission.roduction continues during play, including after the encounter ends. The full
+run lifecycle and stopping economy systems will be connected with game flow.
+- Enemies currently prioritize the generator but will attack blocking structures.
+Full barricade interaction is not fully polished.
 - Enemy paths are authored waypoints; dynamic obstacle avoidance is not implemented.
-  Routes and visual combat feedback still need Play Mode verification.
 - Camera bounds and player world bounds are not implemented.
-- Wave-based pickup refill is not connected yet; waves are a later milestone.
-- Unity Editor and Windows build execution have not been verified in the development
-  environment used for this change. Check movement, collisions, animation direction,
-  camera tracking, pickup collection, and focus changes in the specified Unity version.
-- Wallet, construction, production, health, and cooldown tests are provided in `Assets/Game/Tests/EditMode`
-  for the Unity Test Runner (EditMode); they have not been executed here. They cover
-  mixed-cost atomicity, cancellation/refunds, completion, production timing/capacity,
-  no backlog when full, partial collection, invalid input, and overflow.
-- Manual resource check: confirm 10/10 at start, collect each nearby pickup, confirm
-  only the matching counter increases by one and revisiting the location gives no
-  additional reward. Stop and Play again to confirm the scene resets.
-- Manual building check: approach a faded facility, verify the cost is deducted once,
-  then leave midway and verify a full refund. Return and complete the build; leaving
-  afterward must not refund it. Wait away from the output area for at least 18 seconds
-  and verify stock caps at 6. Collect it, then verify the next output takes 3 seconds.
-- Edge checks: try building with insufficient resources, disable the player or site
-  during construction, and overlap two build zones to verify only one reservation.
-- Manual combat check: build the turret, press Space, and verify an enemy travels
-  along the two waypoint markers, loses HP from shots, and clears the encounter
-  exactly once. Restart and press Space without a turret to verify generator defeat.
-- Check that unfinished construction is refunded on Space, no construction starts
-  during combat, the player cannot push the turret or body-block the enemy, and R
-  fully resets the scene. The new EditMode cases include lethal/reentrant damage,
-  one-time death notification, attack timing, and no burst after a large frame stall.
+- Wallet, construction, production, health, and cooldown tests are provided in Assets/Game/Tests/EditMode
+for the Unity Test Runner (EditMode). They cover mixed-cost atomicity, cancellation,
+production timing/capacity, no backlog when full, invalid input, and overflow.
+
+## Assets & Credits
+- Visual assets: Cainos, Pixel Art Top Down - Basic (Unity Asset Store).
+- Some Visual assets are generated by ChatGPT and GoogleFlow
+- BGM 1: https://incompetech.com/music/royalty-free/music.html
+- SFX Pack 1: https://opengameart.org/content/sfx-0
+- SFX Pack 2: https://torshid.itch.io/western-front-lite
+- Additional SFX: https://pixabay.com/sound-effects/

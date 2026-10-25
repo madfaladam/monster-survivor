@@ -1,3 +1,4 @@
+using MonsterSurvivor.Audio;
 using UnityEngine;
 
 namespace MonsterSurvivor.Resources
@@ -22,6 +23,9 @@ namespace MonsterSurvivor.Resources
             // Consume before notifying wallet observers so callbacks cannot collect twice.
             collected = true;
             gameObject.SetActive(false);
+
+            AudioManager.Instance.PlaySFX(SFXType.ResourceCollected);
+
             wallet.Add(resourceType, amount);
             return true;
         }

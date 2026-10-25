@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MonsterSurvivor.Audio;
 using MonsterSurvivor.Player;
 using UnityEngine;
 
@@ -50,6 +51,9 @@ namespace MonsterSurvivor.Combat
                 
             initialized = true;
             currentPrepareTime = prepareTime;
+
+            AudioManager.Instance.PlayBGM(BGMType.PreparePhase);
+
             Changed?.Invoke();
         }
 
@@ -81,6 +85,8 @@ namespace MonsterSurvivor.Combat
             State = EncounterState.Active;
             builder.enabled = false;
             
+            AudioManager.Instance.PlayBGM(BGMType.BattlePhase);
+
             foreach (TurretController turret in registeredTurrets)
                 turret.SetCombatEnabled(true);
 
@@ -159,6 +165,7 @@ namespace MonsterSurvivor.Combat
             }
             else
             {
+                AudioManager.Instance.PlayBGM(BGMType.PreparePhase);
                 State = EncounterState.Ready;
                 currentPrepareTime = prepareTime; // Reset timer
                 if (builder != null) builder.enabled = true;
@@ -191,8 +198,14 @@ namespace MonsterSurvivor.Combat
 
         private void Finish(EncounterState result)
         {
-            if (State == EncounterState.Defeated) return;
+            if (State == EncounterState.Defeated) {
+                AudioManager.Instance.PlayBGM(BGMType.GameOver);
+                return;
+            }
             State = result;
+            
+            AudioManager.Instance.PlayBGM(BGMType.Victory);        
+
             if (waveDirector != null) waveDirector.StopWaves();
             StopActors();
             builder.enabled = true;
