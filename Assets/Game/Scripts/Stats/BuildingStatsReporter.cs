@@ -62,6 +62,9 @@ namespace MonsterSurvivor.Stats
             countedDestroyed = true;
             if (stats != null)
                 stats.RecordBuildingDestroyed(kind);
+
+            // The reporter lives on the building root; remove the whole building on death.
+            Destroy(gameObject);
         }
 
         private void OnDestroy()
