@@ -1,4 +1,3 @@
-
 using MonsterSurvivor.Combat;
 using UnityEngine;
 using UnityEngine.UI;
@@ -27,6 +26,15 @@ namespace MonsterSurvivor.UI
 
         private void Start() => Refresh();
 
+        // FITUR BARU: Update HUD setiap frame HANYA JIKA sedang dalam fase Prepare (Ready)
+        private void Update()
+        {
+            if (encounter != null && encounter.State == EncounterState.Ready)
+            {
+                Refresh();
+            }
+        }
+
         private void OnDisable()
         {
             encounter.Changed -= Refresh;
@@ -51,14 +59,17 @@ namespace MonsterSurvivor.UI
             }
             else if (encounter.State == EncounterState.Ready)
             {
+                // Format detik menjadi bilangan bulat tanpa desimal (misal: 29s, 14s)
+                int timeRemaining = Mathf.CeilToInt(encounter.PrepareTimeRemaining);
+                
                 if (waveDirector != null && waveDirector.CompletedWaves > 0)
                 {
                     status = $"Wave {waveDirector.CompletedWaves} Cleared | " +
-                            $"Prepare Defenses | Next Wave: {waveDirector.CurrentWave}";
+                             $"Next Wave in {timeRemaining}s (Space to Skip) | Next: {waveDirector.CurrentWave}";
                 }
                 else
                 {
-                    status = "Prepare Build | Next Wave: 1";
+                    status = $"Prepare Build | Starts in {timeRemaining}s (Space to Skip) | Next Wave: 1";
                 }
             }
             else if (encounter.State == EncounterState.Cleared)

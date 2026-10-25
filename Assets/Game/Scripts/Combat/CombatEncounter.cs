@@ -10,6 +10,10 @@ namespace MonsterSurvivor.Combat
     [DisallowMultipleComponent]
     public sealed class CombatEncounter : MonoBehaviour
     {
+        [Header("Encounter Settings")]
+        [SerializeField, Min(0f)] private float prepareTime = 30f; 
+
+        [Header("References")]
         [SerializeField] private Health generator;
         [SerializeField] private Collider2D generatorCollider;
         [SerializeField] private Collider2D playerCollider;
@@ -18,14 +22,19 @@ namespace MonsterSurvivor.Combat
         [SerializeField] private TurretController[] turrets;
         [SerializeField] private Transform[] waypoints;
         [SerializeField] private WaveDirector waveDirector;
+        
         private readonly EnemyRoster roster = new EnemyRoster();
         private readonly HashSet<TurretController> registeredTurrets = new HashSet<TurretController>();
         private bool initialized;
+        private float currentPrepareTime;
 
         public EncounterState State { get; private set; }
         public int RemainingEnemies => roster.Count;
+        public float PrepareTimeRemaining => Mathf.Max(0f, currentPrepareTime); // Akses untuk UI
+        
         public event Action Changed;
         public event Action<EnemyController> EnemyKilled;
+
         private void Start()
         {
             generator.Died += HandleGeneratorDeath;
@@ -33,14 +42,30 @@ namespace MonsterSurvivor.Combat
             {
                 enemy.Initialize(generator, generatorCollider, waypoints);
                 enemy.Removed += HandleEnemyRemoved;
-                // The player cannot indefinitely body-block enemies without taking damage.
                 if (playerCollider != null && enemy.TryGetComponent(out Collider2D enemyCollider))
                     Physics2D.IgnoreCollision(playerCollider, enemyCollider);
             }
             foreach (TurretController turret in turrets)
                 RegisterTurret(turret);
+                
             initialized = true;
+            currentPrepareTime = prepareTime;
             Changed?.Invoke();
+        }
+
+        private void Update()
+        {
+            if (State == EncounterState.Ready && initialized)
+            {
+                //timer
+                currentPrepareTime -= Time.deltaTime;
+                
+                // goto next wave
+                if (currentPrepareTime <= 0f)
+                {
+                    Begin();
+                }
+            }
         }
 
         public void Begin()
@@ -54,7 +79,6 @@ namespace MonsterSurvivor.Combat
             }
 
             State = EncounterState.Active;
-            // Disabling the interactor cancels and refunds any unfinished construction.
             builder.enabled = false;
             
             foreach (TurretController turret in registeredTurrets)
@@ -81,60 +105,44 @@ namespace MonsterSurvivor.Combat
             else
                 Changed?.Invoke();
         }
+
         public EnemyController SpawnEnemyFromGate(EnemyGate gate)
         {
-            if (State != EncounterState.Active ||
-                gate == null ||
-                generator == null ||
-                !generator.IsAlive)
+            if (State != EncounterState.Active || gate == null || generator == null || !generator.IsAlive)
                 return null;
 
-            EnemyController enemy = gate.SpawnEnemy(
-                generator,
-                generatorCollider);
-
-            if (enemy != null)
-                RegisterSpawnedEnemy(enemy);
-
+            EnemyController enemy = gate.SpawnEnemy(generator, generatorCollider);
+            if (enemy != null) RegisterSpawnedEnemy(enemy);
             return enemy;
         }
 
         public void RegisterSpawnedEnemy(EnemyController enemy)
         {
-            if (enemy == null || State != EncounterState.Active)
-                return;
+            if (enemy == null || State != EncounterState.Active) return;
 
             roster.Add(enemy);
             enemy.Removed -= HandleEnemyRemoved;
             enemy.Removed += HandleEnemyRemoved;
-
             enemy.Killed -= HandleEnemyKilled;
             enemy.Killed += HandleEnemyKilled;
 
-            if (playerCollider != null &&
-                enemy.TryGetComponent(out Collider2D enemyCollider))
-            {
+            if (playerCollider != null && enemy.TryGetComponent(out Collider2D enemyCollider))
                 Physics2D.IgnoreCollision(playerCollider, enemyCollider);
-            }
 
             enemy.BeginCombat();
-
             Changed?.Invoke();
         }
 
         public void RegisterTurret(TurretController turret)
         {
-            if (turret == null || !registeredTurrets.Add(turret))
-                return;
-
+            if (turret == null || !registeredTurrets.Add(turret)) return;
             turret.Initialize(roster);
             turret.SetCombatEnabled(State == EncounterState.Active);
         }
 
         public void CompleteWaves()
         {
-            if (State != EncounterState.Active)
-                return;
+            if (State != EncounterState.Active) return;
 
             StopActors();
 
@@ -147,16 +155,13 @@ namespace MonsterSurvivor.Combat
             if (waveDirector != null && waveDirector.IsFinished)
             {
                 State = EncounterState.Finished;
-
-                if (builder != null)
-                    builder.enabled = false;
+                if (builder != null) builder.enabled = false;
             }
             else
             {
                 State = EncounterState.Ready;
-
-                if (builder != null)
-                    builder.enabled = true;
+                currentPrepareTime = prepareTime; // Reset timer
+                if (builder != null) builder.enabled = true;
             }
 
             Changed?.Invoke();
@@ -164,50 +169,31 @@ namespace MonsterSurvivor.Combat
         
         private void HandleEnemyRemoved(EnemyController enemy)
         {
-            if (!roster.Remove(enemy))
-                return;
-
-            if (enemy != null)
-                enemy.Removed -= HandleEnemyRemoved;
-
-            if (State != EncounterState.Active)
-                return;
+            if (!roster.Remove(enemy)) return;
+            if (enemy != null) enemy.Removed -= HandleEnemyRemoved;
+            if (State != EncounterState.Active) return;
 
             if (waveDirector != null)
             {
                 waveDirector.NotifyEnemyRemoved();
-
-                if (generator == null || !generator.IsAlive)
-                    Finish(EncounterState.Defeated);
-
+                if (generator == null || !generator.IsAlive) Finish(EncounterState.Defeated);
                 Changed?.Invoke();
                 return;
             }
 
-            if (generator == null || !generator.IsAlive)
-                Finish(EncounterState.Defeated);
-            else if (roster.Count == 0)
-                Finish(EncounterState.Cleared);
-            else
-                Changed?.Invoke();
-        }
-        private void HandleEnemyKilled(EnemyController enemy)
-        {
-            EnemyKilled?.Invoke(enemy);
+            if (generator == null || !generator.IsAlive) Finish(EncounterState.Defeated);
+            else if (roster.Count == 0) Finish(EncounterState.Cleared);
+            else Changed?.Invoke();
         }
 
+        private void HandleEnemyKilled(EnemyController enemy) => EnemyKilled?.Invoke(enemy);
         private void HandleGeneratorDeath() => Finish(EncounterState.Defeated);
 
         private void Finish(EncounterState result)
         {
-            if (State == EncounterState.Defeated)
-                return;
-
+            if (State == EncounterState.Defeated) return;
             State = result;
-
-            if (waveDirector != null)
-                waveDirector.StopWaves();
-
+            if (waveDirector != null) waveDirector.StopWaves();
             StopActors();
             builder.enabled = true;
             Changed?.Invoke();
@@ -216,14 +202,10 @@ namespace MonsterSurvivor.Combat
         private void StopActors()
         {
             roster.StopAllCombat();
-
             foreach (EnemyController enemy in enemies)
-                if (enemy != null)
-                    enemy.StopCombat();
-
+                if (enemy != null) enemy.StopCombat();
             foreach (TurretController turret in registeredTurrets)
-                if (turret != null)
-                    turret.SetCombatEnabled(false);
+                if (turret != null) turret.SetCombatEnabled(false);
         }
 
         private void OnDisable()
@@ -231,20 +213,16 @@ namespace MonsterSurvivor.Combat
             if (initialized)
             {
                 StopActors();
-                if (builder != null)
-                    builder.enabled = true;
+                if (builder != null) builder.enabled = true;
             }
         }
 
         private void OnDestroy()
         {
-            if (!initialized)
-                return;
-            if (generator != null)
-                generator.Died -= HandleGeneratorDeath;
+            if (!initialized) return;
+            if (generator != null) generator.Died -= HandleGeneratorDeath;
             foreach (EnemyController enemy in enemies)
-                if (enemy != null)
-                    enemy.Removed -= HandleEnemyRemoved;
+                if (enemy != null) enemy.Removed -= HandleEnemyRemoved;
         }
     }
 }
