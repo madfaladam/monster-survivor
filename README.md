@@ -72,8 +72,11 @@ sprite; no projectile object is allocated per attack.
 - No extra framework or dependency was introduced.
 
 ## What I Would Do With More Time
-Next milestones: world pickup refill at each build phase, and a comprehensive run
-result screen showing wave stats. Then balance construction and production costs,
+If given more time, I would focus on scaling the architecture and expanding the gameplay loop:
+- Performance & Architecture: Transition core combat and movement systems to Unity ECS (Entity Component System) to easily support hundreds of simultaneous enemies and projectiles on screen.
+- Asynchronous Operations: Replace standard Unity Coroutines (e.g., in the WaveDirector) with UniTask to ensure zero-allocation, lighter, and more manageable asynchronous flows.
+- Game Feel & Polish: Integrate DOTween for highly optimized UI tweening, smooth building pop-ups, and punchy hit-feedback animations.
+- Gameplay Expansion: Implement a building upgrade system (e.g., upgrading a Turret to Level 2), add a Monster Catalog to track discovered enemy variants, and finalize the dynamic world resource refresh system to replenish pickups at the start of each build phase. Then balance construction and production costs,
 add barricades, and validate authored routes in the Windows build.
 
 ## Known Issues
@@ -93,6 +96,7 @@ production timing/capacity, no backlog when full, invalid input, and overflow.
   - [Buildings](https://chatgpt.com/s/m_6ae04bc38be481919d24026edf026f00)
   - [Enemy Gate](https://chatgpt.com/s/m_6ae04adf29388191a5a89a4f21023bf8)
   - [Barricade](https://flow.google.com/shared/image/9a116149-29d2-45a3-ad97-c1268de692fe)
+  - [App icon](https://chatgpt.com/s/m_6ae06ba92584819199951a5866c81743)
 - BGM: [Kevin MacLeod](https://incompetech.com/music/royalty-free/music.html)
 - SFX: [opengameart](https://opengameart.org/content/sfx-0), [torshid.itch.io](https://torshid.itch.io/western-front-lite), [pixabay](https://pixabay.com/sound-effects/)
 - VFX: [cartoon-fx-remaster-free](https://assetstore.unity.com/packages/vfx/particles/cartoon-fx-remaster-free-109565)
