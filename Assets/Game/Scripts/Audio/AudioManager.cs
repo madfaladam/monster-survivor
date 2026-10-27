@@ -28,7 +28,8 @@ namespace MonsterSurvivor.Audio
         BuildingPlaced,
         BuildingDestroyed,
         ResourceCollected,
-        ButtonClick
+        ButtonClick,
+        BuildingDone
     }
 
     [Serializable]

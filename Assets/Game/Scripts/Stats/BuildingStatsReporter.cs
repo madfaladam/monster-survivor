@@ -53,6 +53,8 @@ namespace MonsterSurvivor.Stats
             countedBuilt = true;
             if (stats != null)
                 stats.RecordBuildingBuilt(kind);
+            
+            AudioManager.Instance.PlaySFX(SFXType.BuildingDone);
         }
 
         private void HandleHealthDeath()
