@@ -6,7 +6,7 @@ namespace MonsterSurvivor.Combat
     public sealed class WaveDirector : MonoBehaviour
     {
         [SerializeField] private CombatEncounter encounter;
-        [SerializeField] private EnemyGate gate;
+        [SerializeField] private EnemyGate[] gates;
         [SerializeField, Min(1)] private int[] enemiesPerWave = { 3, 5, 8 };
         [SerializeField, Min(0f)] private float spawnInterval = 0.5f;
         //[SerializeField, Min(0f)] private float waveDelay = 2f;
@@ -27,7 +27,7 @@ namespace MonsterSurvivor.Combat
 
         public void BeginWaves()
         {
-            if (running || encounter == null || gate == null ||
+            if (running || encounter == null || gates == null || gates.Length == 0 ||
                 enemiesPerWave == null || enemiesPerWave.Length == 0 ||
                 currentWave >= enemiesPerWave.Length)
                 return;
@@ -47,8 +47,9 @@ namespace MonsterSurvivor.Combat
 
                 while (pendingSpawns > 0 && running)
                 {
-                    EnemyController enemy = encounter.SpawnEnemyFromGate(gate);
-
+                    EnemyGate randomGate = gates[Random.Range(0, gates.Length)];
+                    EnemyController enemy = encounter.SpawnEnemyFromGate(randomGate);
+                    
                     if (enemy != null)
                         aliveEnemies++;
 
@@ -66,7 +67,7 @@ namespace MonsterSurvivor.Combat
                 if (!running)
                     yield break;
 
-                // Satu wave selesai: kembali ke prepare/build.
+                // wave done
                 currentWave++;
                 Changed?.Invoke();
                 running = false;
