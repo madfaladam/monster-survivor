@@ -1,5 +1,6 @@
 using MonsterSurvivor.Audio;
 using MonsterSurvivor.Construction;
+using MonsterSurvivor.VFX;
 using UnityEngine;
 
 namespace MonsterSurvivor.Combat
@@ -45,7 +46,11 @@ namespace MonsterSurvivor.Combat
             tracer.Show((Vector2)transform.position + Vector2.up * 0.8f,
                 (Vector2)target.transform.position + Vector2.up * 0.5f);
             
+            Vector3 hitPosition = target.transform.position + Vector3.up * 0.5f;
+            VFXManager.Instance.PlayVFX(VFXType.EnemyHit, hitPosition);
+
             AudioManager.Instance.PlaySFX(SFXType.TurretShoot);
+
             target.TakeDamage(definition.Damage);
         }
 

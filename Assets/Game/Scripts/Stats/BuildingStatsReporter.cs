@@ -1,6 +1,7 @@
 using MonsterSurvivor.Audio;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Construction;
+using MonsterSurvivor.VFX;
 using UnityEngine;
 
 namespace MonsterSurvivor.Stats
@@ -55,6 +56,7 @@ namespace MonsterSurvivor.Stats
                 stats.RecordBuildingBuilt(kind);
             
             AudioManager.Instance.PlaySFX(SFXType.BuildingDone);
+            VFXManager.Instance.PlayVFX(VFXType.BuildingDone, transform.position + Vector3.up * 0.5f);
         }
 
         private void HandleHealthDeath()
@@ -67,6 +69,7 @@ namespace MonsterSurvivor.Stats
                 stats.RecordBuildingDestroyed(kind);
 
             AudioManager.Instance.PlaySFX(SFXType.BuildingDestroyed);
+            VFXManager.Instance.PlayVFX(VFXType.BuildingDestroyed, transform.position + Vector3.up * 0.5f);
             // The reporter lives on the building root; remove the whole building on death.
             Destroy(gameObject);
         }

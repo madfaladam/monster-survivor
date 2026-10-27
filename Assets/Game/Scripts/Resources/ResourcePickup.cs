@@ -1,4 +1,5 @@
 using MonsterSurvivor.Audio;
+using MonsterSurvivor.VFX;
 using UnityEngine;
 
 namespace MonsterSurvivor.Resources
@@ -25,7 +26,8 @@ namespace MonsterSurvivor.Resources
             gameObject.SetActive(false);
 
             AudioManager.Instance.PlaySFX(SFXType.ResourceCollected);
-
+            VFXManager.Instance.PlayVFX(VFXType.ResourceCollected, transform.position);
+            
             wallet.Add(resourceType, amount);
             return true;
         }

@@ -1,6 +1,7 @@
 using System;
 using MonsterSurvivor.Audio;
 using MonsterSurvivor.Construction;
+using MonsterSurvivor.VFX;
 using UnityEngine;
 
 namespace MonsterSurvivor.Combat
@@ -142,7 +143,7 @@ namespace MonsterSurvivor.Combat
                     body.linearVelocity = Vector2.zero;
                     if (cooldown.TryAttack()) 
                     {
-                        
+                        VFXManager.Instance.PlayVFX(VFXType.EnemyAttack, targetPoint);
                         AudioManager.Instance.PlaySFX(SFXType.EnemyAttack); // Play damage sound effect when attacking a building
                         buildingTarget.TakeDamage(definition.Damage);
                     }
@@ -162,6 +163,7 @@ namespace MonsterSurvivor.Combat
                 body.linearVelocity = Vector2.zero;
                 if (cooldown.TryAttack()) 
                 {
+                    VFXManager.Instance.PlayVFX(VFXType.EnemyAttack, goalPoint);
                     AudioManager.Instance.PlaySFX(SFXType.EnemyAttack);
                     goal.TakeDamage(definition.Damage);
                 }
@@ -194,7 +196,6 @@ namespace MonsterSurvivor.Combat
 
         private void FindBuildingTarget()
         {
-            // Unity 6+ Zero-Allocation API untuk Physics2D
             int hitCount = Physics2D.OverlapCircle(body.position, definition.AttackRange + buildingScanPadding, scanFilter, hitBuffer);
             float nearestSqrDistance = float.PositiveInfinity;
 
@@ -219,8 +220,7 @@ namespace MonsterSurvivor.Combat
                 nearestSqrDistance = distanceSqr;
             }
             
-            // PENTING: Bersihkan buffer array statis ini agar Collider bangunan yang hancur 
-            // tidak tertahan di memori (mencegah Memory Leak dari dangling references).
+            // prevent memory leak by clearing the buffer after use
             Array.Clear(hitBuffer, 0, hitCount);
         }
 
@@ -255,7 +255,7 @@ namespace MonsterSurvivor.Combat
             StopCombat();
             
             AudioManager.Instance.PlaySFX(SFXType.EnemyDeath);
-
+            VFXManager.Instance.PlayVFX(VFXType.EnemyDeath, transform.position);
             Removed?.Invoke(this);
             Killed?.Invoke(this);
         }
