@@ -148,7 +148,8 @@ namespace MonsterSurvivor.Combat
 
         public void CompleteWaves()
         {
-            if (State != EncounterState.Active) return;
+            if (State != EncounterState.Active)
+                return;
 
             StopActors();
 
@@ -161,14 +162,23 @@ namespace MonsterSurvivor.Combat
             if (waveDirector != null && waveDirector.IsFinished)
             {
                 State = EncounterState.Finished;
-                if (builder != null) builder.enabled = false;
+                
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.PlayBGM(BGMType.Victory);
+
+                if (builder != null)
+                    builder.enabled = false;
             }
             else
             {
-                AudioManager.Instance.PlayBGM(BGMType.PreparePhase);
                 State = EncounterState.Ready;
                 currentPrepareTime = prepareTime; // Reset timer
-                if (builder != null) builder.enabled = true;
+                
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.PlayBGM(BGMType.PreparePhase);
+
+                if (builder != null)
+                    builder.enabled = true;
             }
 
             Changed?.Invoke();
@@ -198,15 +208,22 @@ namespace MonsterSurvivor.Combat
 
         private void Finish(EncounterState result)
         {
-            if (State == EncounterState.Defeated) {
-                AudioManager.Instance.PlayBGM(BGMType.GameOver);
+            if (State == EncounterState.Defeated)
                 return;
-            }
-            State = result;
-            
-            AudioManager.Instance.PlayBGM(BGMType.Victory);        
 
-            if (waveDirector != null) waveDirector.StopWaves();
+            State = result;
+
+            if (AudioManager.Instance != null)
+            {
+                if (result == EncounterState.Defeated)
+                    AudioManager.Instance.PlayBGM(BGMType.GameOver);
+                else if (result == EncounterState.Finished || result == EncounterState.Cleared)
+                    AudioManager.Instance.PlayBGM(BGMType.Victory);
+            }
+
+            if (waveDirector != null)
+                waveDirector.StopWaves();
+
             StopActors();
             builder.enabled = true;
             Changed?.Invoke();
