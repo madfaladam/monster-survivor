@@ -1,6 +1,8 @@
 using System;
+using MonsterSurvivor.Audio;
 using MonsterSurvivor.Construction;
 using MonsterSurvivor.Resources;
+using MonsterSurvivor.VFX;
 using UnityEngine;
 
 namespace MonsterSurvivor.Production
@@ -41,7 +43,15 @@ namespace MonsterSurvivor.Production
         public void Collect(IResourceWallet wallet)
         {
             if (isActiveAndEnabled && buffer != null && site.isActiveAndEnabled && site.IsBuilt)
-                buffer.Collect(wallet, definition.ResourceType);
+            {
+                int collected = buffer.Collect(wallet, definition.ResourceType);  
+
+                if(collected > 0)
+                {
+                    AudioManager.Instance.PlaySFX(SFXType.ResourceCollected);
+                    VFXManager.Instance.PlayVFX(VFXType.ResourceCollected, transform.position);
+                }
+            }   
         }
 
         private void NotifyChanged() => Changed?.Invoke();
