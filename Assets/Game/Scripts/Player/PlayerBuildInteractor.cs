@@ -70,6 +70,13 @@ namespace MonsterSurvivor.Player
             zone != null && zone.isActiveAndEnabled && zone.Site != null &&
             zone.Site.isActiveAndEnabled && !zone.Site.IsBuilt;
 
+        // Called when the encounter enters battle so an unfinished build is
+        // cancelled immediately and ConstructionProcess refunds its reserved cost.
+        public void CancelCurrentBuild()
+        {
+            CancelActive();
+        }
+
         private void CancelActive()
         {
             ConstructionZone zone = activeZone;
