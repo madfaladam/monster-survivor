@@ -153,6 +153,12 @@ namespace MonsterSurvivor.Combat
             turret.SetCombatEnabled(State == EncounterState.Active);
         }
 
+        public void UnregisterTurret(TurretController turret)
+        {
+            if (turret == null || !registeredTurrets.Remove(turret)) return;
+            turret.SetCombatEnabled(false);
+        }
+
         public void CompleteWaves()
         {
             if (State != EncounterState.Active)
