@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using MonsterSurvivor.Audio;
 using MonsterSurvivor.Combat;
 using MonsterSurvivor.Player;
@@ -34,6 +35,8 @@ namespace MonsterSurvivor.Construction
         private SpriteRenderer[] previewRenderers;
         private bool placing;
         private Coroutine notificationRoutine;
+        private readonly Dictionary<ConstructionSite, GameObject> unfinishedBuildings =
+            new Dictionary<ConstructionSite, GameObject>();
 
         private void Awake()
         {
@@ -176,6 +179,8 @@ namespace MonsterSurvivor.Construction
             if (statsReporter == null)
                 statsReporter = building.AddComponent<BuildingStatsReporter>();
             statsReporter.Initialize(site, gameStats);
+            unfinishedBuildings.Add(site, building);
+            site.Changed += HandleConstructionChanged;
 
             TurretController turret = building.GetComponentInChildren<TurretController>();
             if (turret != null)
@@ -237,7 +242,10 @@ namespace MonsterSurvivor.Construction
                 buildPanel.SetActive(ready);
 
             if (!ready)
+            {
                 CancelPlacement();
+                CancelUnfinishedBuildings();
+            }
 
             if (buildingButtons == null)
                 return;
@@ -245,6 +253,42 @@ namespace MonsterSurvivor.Construction
             foreach (BuildingButtonUI option in buildingButtons)
                 if (option != null)
                     option.SetInteractable(ready && !placing);
+        }
+
+        private void HandleConstructionChanged(ConstructionSite site)
+        {
+            if (site == null || !site.IsBuilt || !unfinishedBuildings.Remove(site, out GameObject building))
+                return;
+
+            site.Changed -= HandleConstructionChanged;
+        }
+
+        private void CancelUnfinishedBuildings()
+        {
+            if (unfinishedBuildings.Count == 0)
+                return;
+
+            var pending = new List<KeyValuePair<ConstructionSite, GameObject>>(unfinishedBuildings);
+            unfinishedBuildings.Clear();
+
+            foreach (KeyValuePair<ConstructionSite, GameObject> entry in pending)
+            {
+                ConstructionSite site = entry.Key;
+                GameObject building = entry.Value;
+                if (site != null)
+                {
+                    site.Changed -= HandleConstructionChanged;
+                    site.Cancel(); // Refunds the reserved Wood and Stone and resets progress.
+                }
+
+                if (building != null)
+                {
+                    TurretController turret = building.GetComponentInChildren<TurretController>(true);
+                    if (turret != null && encounter != null)
+                        encounter.UnregisterTurret(turret);
+                    Destroy(building);
+                }
+            }
         }
 
         private void SetPreviewColor(bool valid)
@@ -308,6 +352,7 @@ namespace MonsterSurvivor.Construction
             }
 
             CancelPlacement();
+            CancelUnfinishedBuildings();
             selectedOption = null;
 
             if (notificationRoutine != null)
