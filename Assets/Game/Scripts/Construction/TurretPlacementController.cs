@@ -255,12 +255,19 @@ namespace MonsterSurvivor.Construction
                     option.SetInteractable(ready && !placing);
         }
 
-        private void HandleConstructionChanged(ConstructionSite site)
+        private void HandleConstructionChanged()
         {
-            if (site == null || !site.IsBuilt || !unfinishedBuildings.Remove(site, out GameObject building))
-                return;
+            var completed = new List<ConstructionSite>();
+            foreach (ConstructionSite site in unfinishedBuildings.Keys)
+                if (site == null || site.IsBuilt)
+                    completed.Add(site);
 
-            site.Changed -= HandleConstructionChanged;
+            foreach (ConstructionSite site in completed)
+            {
+                if (site != null)
+                    site.Changed -= HandleConstructionChanged;
+                unfinishedBuildings.Remove(site);
+            }
         }
 
         private void CancelUnfinishedBuildings()
