@@ -83,7 +83,14 @@ namespace MonsterSurvivor.Combat
             }
 
             State = EncounterState.Active;
-            builder.enabled = false;
+
+            // Cancel any in-progress construction before disabling the interactor.
+            // ConstructionSite.Cancel() returns the reserved wood and stone.
+            if (builder != null)
+            {
+                builder.CancelCurrentBuild();
+                builder.enabled = false;
+            }
             
             AudioManager.Instance.PlayBGM(BGMType.BattlePhase);
 
