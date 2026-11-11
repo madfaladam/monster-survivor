@@ -10,11 +10,11 @@ namespace MonsterSurvivor.Player
 
         private InputAction moveAction;
 
-        public Vector2 Direction => isActiveAndEnabled && moveAction != null
+        public Vector2 Direction => isActiveAndEnabled && moveAction != null && moveAction.enabled
             ? Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f)
             : Vector2.zero;
 
-        private void Awake()
+        private void OnEnable()
         {
             if (inputActions == null)
             {
@@ -23,12 +23,33 @@ namespace MonsterSurvivor.Player
                 return;
             }
 
-            // Own the action so disabling this component cannot disable other consumers.
-            moveAction = inputActions.FindAction("Player/Move", true).Clone();
+            // Recreate the private action on every enable. This avoids retaining a
+            // disabled/disposed action when the player or scene is reloaded.
+            DisposeMoveAction();
+
+            InputAction sourceAction = inputActions.FindAction("Player/Move", true);
+            moveAction = sourceAction.Clone();
+            moveAction.Enable();
         }
 
-        private void OnEnable() => moveAction?.Enable();
-        private void OnDisable() => moveAction?.Disable();
-        private void OnDestroy() => moveAction?.Dispose();
+        private void OnDisable()
+        {
+            DisposeMoveAction();
+        }
+
+        private void OnDestroy()
+        {
+            DisposeMoveAction();
+        }
+
+        private void DisposeMoveAction()
+        {
+            if (moveAction == null)
+                return;
+
+            moveAction.Disable();
+            moveAction.Dispose();
+            moveAction = null;
+        }
     }
 }
